@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import introVideo from "./assets/intro.mp4";
 import { PHOTOS, GUESTS, FACULTY, COMMITTEE, FALLBACK_EVENTS, FALLBACK_TEAM, NAV } from "./data.js";
 import {
   getEvents,
@@ -220,92 +221,62 @@ function CursorTrail() {
   return <canvas id="trail" ref={ref} />;
 }
 
-/* ---------- intro splash: glowing eyes reveal ---------- */
+/* ---------- intro splash: looping animation video, tap anywhere to enter ---------- */
 function IntroSplash({ onDone }) {
-  const [phase, setPhase] = useState("eyes"); // eyes -> logo -> out
+  const [leaving, setLeaving] = useState(false);
   const [visible, setVisible] = useState(true);
-  const skipped = useRef(false);
+  const videoRef = useRef(null);
+  const tapped = useRef(false);
 
-  const finish = useCallback(() => {
-    if (skipped.current) return;
-    skipped.current = true;
-    setPhase("out");
+  // Autoplay needs the video muted; some browsers still block it, so retry quietly.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    const p = v.play();
+    if (p && p.catch) p.catch(() => {});
+  }, []);
+
+  const enter = useCallback(() => {
+    if (tapped.current) return;
+    tapped.current = true;
+    setLeaving(true);
     setTimeout(() => { setVisible(false); onDone(); }, 520);
   }, [onDone]);
 
+  // Enter/Space also work, for keyboard users.
   useEffect(() => {
-    if (reduceMotion()) {
-      setPhase("logo");
-      const t = setTimeout(finish, 550);
-      return () => clearTimeout(t);
-    }
-    const t1 = setTimeout(() => setPhase("logo"), 1450);
-    const t2 = setTimeout(finish, 2550);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [finish]);
+    const onKey = (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); enter(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [enter]);
 
   if (!visible) return null;
 
   return (
-    <div className={`intro ${phase}`} onClick={finish} role="presentation">
-      <span className="intro-aura" />
-      <i className="intro-sparkle s1" /><i className="intro-sparkle s2" />
-      <i className="intro-sparkle s3" /><i className="intro-sparkle s4" />
-      <div className="intro-stage">
-        <svg className="intro-glyph" viewBox="0 0 600 240" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <radialGradient id="ig-eye" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#eaffff" />
-              <stop offset="45%" stopColor="var(--accent)" />
-              <stop offset="100%" stopColor="transparent" />
-            </radialGradient>
-            <linearGradient id="ig-wing" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="var(--accent2)" />
-              <stop offset="55%" stopColor="var(--accent)" />
-              <stop offset="100%" stopColor="var(--gold)" />
-            </linearGradient>
-            <radialGradient id="ig-iris" cx="42%" cy="38%" r="65%">
-              <stop offset="0%" stopColor="#cdfbff" />
-              <stop offset="55%" stopColor="var(--accent)" />
-              <stop offset="100%" stopColor="#04202a" />
-            </radialGradient>
-          </defs>
-
-          <path className="brow" d="M228,97 Q266,74 302,94" />
-          <path className="brow" d="M298,94 Q334,74 372,97" />
-
-          <g className="eyes">
-            <ellipse className="eye-glow" cx="266" cy="120" rx="40" ry="40" />
-            <ellipse className="eye-glow" cx="334" cy="120" rx="40" ry="40" />
-            <path className="eye" d="M232,120 Q266,90 300,120 Q266,142 232,120 Z" />
-            <path className="eye" d="M300,120 Q334,90 368,120 Q334,142 300,120 Z" />
-            <circle className="iris" cx="266" cy="120" r="12" />
-            <circle className="iris" cx="334" cy="120" r="12" />
-            <circle className="pupil" cx="266" cy="120" r="5.5" />
-            <circle className="pupil" cx="334" cy="120" r="5.5" />
-            <circle className="glint" cx="262" cy="114" r="2.4" />
-            <circle className="glint" cx="330" cy="114" r="2.4" />
-          </g>
-
-          <g className="embers">
-            <circle className="ember em1" cx="170" cy="175" r="2.6" />
-            <circle className="ember em2" cx="430" cy="175" r="2.2" />
-            <circle className="ember em3" cx="130" cy="150" r="1.8" />
-            <circle className="ember em4" cx="470" cy="150" r="2" />
-            <circle className="ember em5" cx="300" cy="190" r="2.4" />
-          </g>
-        </svg>
-        <div className="intro-logo">
-          <Logo />
-          <div className="intro-word">AgentBlazer</div>
-          <div className="intro-sub">CLUB</div>
-        </div>
-      </div>
-      <span className="intro-hint">Tap to continue</span>
+    <div
+      className={`intro intro-video ${leaving ? "out" : ""}`}
+      onClick={enter}
+      role="button"
+      tabIndex={0}
+      aria-label="Tap anywhere to enter the AgentBlazer Club site"
+    >
+      <video
+        ref={videoRef}
+        className="intro-video-el"
+        src={introVideo}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        disablePictureInPicture
+      />
     </div>
   );
 }
-
 /* ---------- hover popover (person photo / event gallery) ---------- */
 function GalleryBody({ g }) {
   const [i, setI] = useState(g.start);
@@ -1093,6 +1064,12 @@ export default function App() {
     document.title = "AgentBlazer Club | Dept. of CSE, St Joseph Engineering College";
   }, []);
 
+  // While the intro video is up, lift the cursor-trail canvas above it
+  useEffect(() => {
+    document.documentElement.classList.toggle("intro-on", !introDone);
+    return () => document.documentElement.classList.remove("intro-on");
+  }, [introDone]);
+
   const go = useCallback((id) => {
     setHover(null);
     setPage(id);
@@ -1105,7 +1082,7 @@ export default function App() {
   return (
     <>
       {!introDone && <IntroSplash onDone={() => setIntroDone(true)} />}
-      <NetworkBackground />
+      {introDone && <NetworkBackground />}
       <div className={`site ${introDone ? "in" : ""}`}>
         <Header page={page} go={go} theme={theme} setTheme={setTheme} />
         <main>
