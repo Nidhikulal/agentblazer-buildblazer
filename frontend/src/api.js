@@ -1,0 +1,45 @@
+// Centralized API client for talking to the AgentBlazer backend.
+// Base URL comes from the VITE_API_URL env var (see .env), falling back
+// to the local backend dev server so `npm run dev` works out of the box.
+
+const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/+$/, "");
+
+async function request(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options
+  });
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch (e) {
+    // Some responses (e.g. plain 204s) may not have a JSON body.
+  }
+
+  if (!res.ok) {
+    const message = (data && data.message) || `Request failed (${res.status})`;
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+/* ---------- public read endpoints ---------- */
+export const getEvents = () => request("/events");
+export const getTeam = () => request("/team");
+export const getSettings = () => request("/settings");
+export const getThemes = () => request("/settings/themes");
+export const getStats = () => request("/stats");
+
+/* ---------- public write endpoints (forms) ---------- */
+export const submitMembership = (payload) =>
+  request("/members", { method: "POST", body: JSON.stringify(payload) });
+
+export const requestMembershipOtp = (email) =>
+  request("/members/request-otp", { method: "POST", body: JSON.stringify({ email }) });
+
+export const verifyMembershipOtp = (email, otp) =>
+  request("/members/verify-otp", { method: "POST", body: JSON.stringify({ email, otp }) });
+export const submitContact = (payload) =>
+  request("/contact", { method: "POST", body: JSON.stringify(payload) });
