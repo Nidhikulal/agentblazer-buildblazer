@@ -41,5 +41,12 @@ export const requestMembershipOtp = (email) =>
 
 export const verifyMembershipOtp = (email, otp) =>
   request("/members/verify-otp", { method: "POST", body: JSON.stringify({ email, otp }) });
+
 export const submitContact = (payload) =>
   request("/contact", { method: "POST", body: JSON.stringify(payload) });
+
+export const requestContactOtp = (email) =>
+  request("/contact/request-otp", { method: "POST", body: JSON.stringify({ email }) });
+
+export const verifyContactOtp = (email, otp) =>
+  request("/contact/verify-otp", { method: "POST", body: JSON.stringify({ email, otp }) });

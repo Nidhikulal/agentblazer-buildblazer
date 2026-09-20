@@ -102,8 +102,8 @@ header .wrap{height:100%;display:flex;align-items:center;justify-content:space-b
 .brand-name b{font-weight:600;background:linear-gradient(90deg,var(--accent),var(--gold),#e879a9);-webkit-background-clip:text;background-clip:text;color:transparent}
 .brand-name i{font-family:var(--serif);font-size:14px;color:var(--muted);margin-left:6px;font-weight:400}
 .brand-sub{color:var(--accent);font-size:13px;font-weight:500;letter-spacing:.3px;margin-top:3px}
-nav.tabs{display:flex;gap:6px;padding:6px;border:1px solid var(--border);border-radius:16px;background:var(--pill);position:absolute;left:50%;transform:translateX(-50%)}
-nav.tabs button{background:none;border:1px solid transparent;color:var(--muted);padding:9px 20px;border-radius:12px;font-size:15px;font-weight:500;display:flex;align-items:center;gap:9px;transition:.25s;color:color-mix(in srgb,var(--text) 65%,transparent)}
+nav.tabs{display:flex;gap:4px;padding:6px;border:1px solid var(--border);border-radius:16px;background:var(--pill);position:absolute;left:50%;transform:translateX(-50%)}
+nav.tabs button{background:none;border:1px solid transparent;color:var(--muted);padding:8px 14px;border-radius:12px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px;transition:.25s;color:color-mix(in srgb,var(--text) 65%,transparent);white-space:nowrap}
 nav.tabs button:hover{color:var(--text)}
 nav.tabs button.active{color:var(--text);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--accent) 35%,transparent)}
 nav.tabs .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
@@ -350,6 +350,7 @@ footer .copy{margin-top:34px;padding-top:20px;border-top:1px solid var(--border)
 /* ---------- membership / contact form modals (backend-connected) ---------- */
 .ab-modal-overlay{position:fixed;inset:0;z-index:9999;background:rgba(4,3,10,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;overflow-x:hidden;animation:ab-fade .2s ease}
 .ab-modal{position:relative;width:100%;max-width:460px;max-height:calc(100vh - 48px);overflow-y:auto;overflow-x:hidden;background:var(--card-solid);border:1px solid var(--border);border-radius:24px;padding:32px 30px;box-shadow:0 24px 70px rgba(0,0,0,.5),0 0 40px -12px var(--accent);color:var(--text);animation:ab-pop .22s ease;scrollbar-width:thin;scrollbar-color:var(--accent2) transparent}
+.ab-modal.wide{max-width:600px}
 .ab-modal::-webkit-scrollbar{width:6px}
 .ab-modal::-webkit-scrollbar-track{background:transparent}
 .ab-modal::-webkit-scrollbar-thumb{background:var(--accent2);border-radius:999px}
@@ -372,4 +373,4 @@ footer .copy{margin-top:34px;padding-top:20px;border-top:1px solid var(--border)
 .ab-link-btn:hover{color:var(--accent)}
 @keyframes ab-fade{from{opacity:0}to{opacity:1}}
 @keyframes ab-pop{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:none}}
-@media(max-width:520px){.ab-row{grid-template-columns:1fr}.ab-modal{padding:26px 20px}}
+@media(max-width:520px){.ab-row{grid-template-columns:1fr}.ab-modal{padding:26px 20px}.ab-modal.wide{max-width:460px}}

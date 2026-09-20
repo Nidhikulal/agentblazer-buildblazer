@@ -26,4 +26,36 @@ async function sendOtpEmail(to, otp) {
   });
 }
 
-module.exports = { sendOtpEmail };
+function escapeHtml(str = "") {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Notifies the CSE department whenever someone submits the public contact form.
+async function sendContactNotification({ name, email, subject, message }) {
+  const to = process.env.CONTACT_RECIPIENT || "24g15.nidhi@sjec.ac.in";
+
+  await transporter.sendMail({
+    from: `"AgentBlazer Club Website" <${process.env.SMTP_USER}>`,
+    to,
+    replyTo: email,
+    subject: `[Contact Form] ${subject && subject.trim() ? subject : "New message from " + name}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto">
+        <h2>New Contact Form Submission</h2>
+        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+        ${subject ? `<p><strong>Subject:</strong> ${escapeHtml(subject)}</p>` : ""}
+        <p><strong>Message:</strong></p>
+        <p style="white-space:pre-wrap;border-left:3px solid #5b6ee8;padding-left:12px">${escapeHtml(message)}</p>
+        <p style="color:#888;font-size:12px;margin-top:24px">Sent via the AgentBlazer Club website contact form. Reply-to is set to the sender's email.</p>
+      </div>
+    `
+  });
+}
+
+module.exports = { sendOtpEmail, sendContactNotification };

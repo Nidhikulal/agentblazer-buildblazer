@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { PHOTOS, GUESTS, FACULTY, COMMITTEE, FALLBACK_EVENTS, FALLBACK_TEAM, NAV } from "./data.js";
-import { getEvents, getTeam, getSettings, submitMembership, submitContact, requestMembershipOtp, verifyMembershipOtp } from "./api.js";
+import {
+  getEvents,
+  getTeam,
+  getSettings,
+  submitMembership,
+  submitContact,
+  requestMembershipOtp,
+  verifyMembershipOtp,
+  requestContactOtp,
+  verifyContactOtp
+} from "./api.js";
 /* ---------- map backend data shapes to the shapes this UI expects ---------- */
 const EVENT_TAG_COLORS = ["c1", "c2", "c3", "c4"];
 
@@ -649,7 +659,7 @@ function Events({ hover, setHover }) {
 }
 
 /* ---------- join / contact form modals ---------- */
-function FormModal({ title, subtitle, onClose, children }) {
+function FormModal({ title, subtitle, onClose, children, wide }) {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -665,7 +675,7 @@ function FormModal({ title, subtitle, onClose, children }) {
 
   return createPortal(
     <div className="ab-modal-overlay" onClick={onClose} role="presentation">
-      <div className="ab-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`ab-modal${wide ? " wide" : ""}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}>
         <button type="button" className="ab-modal-close" onClick={onClose} aria-label="Close">
           ×
         </button>
@@ -680,7 +690,7 @@ function FormModal({ title, subtitle, onClose, children }) {
 
 function MembershipForm({ onClose }) {
   const [stage, setStage] = useState("email"); // email | otp | details | done
-  const [form, setForm] = useState({ name: "", email: "", phone: "", year: "", branch: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", usn: "", phone: "", year: "", branch: "", message: "" });
   const [otp, setOtp] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | error
   const [error, setError] = useState("");
@@ -811,35 +821,43 @@ function MembershipForm({ onClose }) {
 
   // stage === "details"
   return (
-    <FormModal title="Become a Member" subtitle="Almost done — tell us a bit more about yourself." onClose={onClose}>
+    <FormModal title="Become a Member" subtitle="Almost done — tell us a bit more about yourself." onClose={onClose} wide>
       <form className="ab-form" onSubmit={submitDetails}>
-        <div className="ab-field">
-          <label htmlFor="mf-name">Full Name *</label>
-          <input id="mf-name" required value={form.name} onChange={update("name")} placeholder="Your full name" />
-        </div>
-        <div className="ab-field">
-          <label>College Email</label>
-          <input value={form.email} disabled />
+        <div className="ab-row">
+          <div className="ab-field">
+            <label htmlFor="mf-name">Full Name *</label>
+            <input id="mf-name" required value={form.name} onChange={update("name")} placeholder="Your full name" />
+          </div>
+          <div className="ab-field">
+            <label htmlFor="mf-usn">USN *</label>
+            <input id="mf-usn" required value={form.usn} onChange={update("usn")} placeholder="e.g. 4SJ22CS001" />
+          </div>
         </div>
         <div className="ab-row">
+          <div className="ab-field">
+            <label>College Email</label>
+            <input value={form.email} disabled />
+          </div>
           <div className="ab-field">
             <label htmlFor="mf-phone">Phone</label>
             <input id="mf-phone" value={form.phone} onChange={update("phone")} placeholder="Optional" />
           </div>
+        </div>
+        <div className="ab-row">
           <div className="ab-field">
             <label htmlFor="mf-year">Year</label>
             <input id="mf-year" value={form.year} onChange={update("year")} placeholder="e.g. 2nd Year" />
           </div>
-        </div>
-        <div className="ab-field">
-          <label htmlFor="mf-branch">Branch</label>
-          <input id="mf-branch" value={form.branch} onChange={update("branch")} placeholder="e.g. CSE" />
+          <div className="ab-field">
+            <label htmlFor="mf-branch">Branch</label>
+            <input id="mf-branch" value={form.branch} onChange={update("branch")} placeholder="e.g. CSE" />
+          </div>
         </div>
         <div className="ab-field">
           <label htmlFor="mf-message">Why do you want to join?</label>
           <textarea
             id="mf-message"
-            rows={3}
+            rows={2}
             value={form.message}
             onChange={update("message")}
             placeholder="Tell us a little about your interest in AI agents..."
@@ -854,11 +872,48 @@ function MembershipForm({ onClose }) {
   );
 }
 function ContactForm({ onClose }) {
+  const [stage, setStage] = useState("email"); // email | otp | details | done
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
-  const [status, setStatus] = useState("idle");
+  const [otp, setOtp] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | error
   const [error, setError] = useState("");
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const isCollegeEmail = (email) => /@sjec\.ac\.in$/i.test(email.trim());
+
+  const sendCode = async (e) => {
+    e.preventDefault();
+    if (!isCollegeEmail(form.email)) {
+      setError("Please use your official college email ending in @sjec.ac.in");
+      setStatus("error");
+      return;
+    }
+    setStatus("sending");
+    setError("");
+    try {
+      await requestContactOtp(form.email);
+      setStatus("idle");
+      setStage("otp");
+    } catch (err) {
+      setError(err.message || "Could not send verification code. Please try again.");
+      setStatus("error");
+    }
+  };
+
+  const verifyCode = async (e) => {
+    e.preventDefault();
+    setStatus("sending");
+    setError("");
+    try {
+      await verifyContactOtp(form.email, otp);
+      setStatus("idle");
+      setStage("details");
+    } catch (err) {
+      setError(err.message || "Incorrect or expired code. Please try again.");
+      setStatus("error");
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -866,14 +921,14 @@ function ContactForm({ onClose }) {
     setError("");
     try {
       await submitContact(form);
-      setStatus("done");
+      setStage("done");
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
       setStatus("error");
     }
   };
 
-  if (status === "done") {
+  if (stage === "done") {
     return (
       <FormModal title="Message Sent" onClose={onClose}>
         <p className="ab-success">
@@ -886,16 +941,78 @@ function ContactForm({ onClose }) {
     );
   }
 
+  if (stage === "email") {
+    return (
+      <FormModal title="Contact CSE Department" subtitle="Enter your official SJEC college email to get started." onClose={onClose}>
+        <form className="ab-form" onSubmit={sendCode}>
+          <div className="ab-field">
+            <label htmlFor="cf-email">College Email *</label>
+            <input
+              id="cf-email"
+              required
+              type="email"
+              value={form.email}
+              onChange={update("email")}
+              placeholder="yourname@sjec.ac.in"
+            />
+          </div>
+          {status === "error" && <div className="ab-form-msg error">{error}</div>}
+          <button className="btn primary" type="submit" disabled={status === "sending"}>
+            {status === "sending" ? "Sending Code…" : "Send Verification Code"}
+          </button>
+        </form>
+      </FormModal>
+    );
+  }
+
+  if (stage === "otp") {
+    return (
+      <FormModal title="Verify Your Email" subtitle={`We sent a 6-digit code to ${form.email}.`} onClose={onClose}>
+        <form className="ab-form" onSubmit={verifyCode}>
+          <div className="ab-field">
+            <label htmlFor="cf-otp">Verification Code *</label>
+            <input
+              id="cf-otp"
+              required
+              inputMode="numeric"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+              placeholder="6-digit code"
+            />
+          </div>
+          {status === "error" && <div className="ab-form-msg error">{error}</div>}
+          <button className="btn primary" type="submit" disabled={status === "sending" || otp.length !== 6}>
+            {status === "sending" ? "Verifying…" : "Verify Code"}
+          </button>
+          <button
+            type="button"
+            className="ab-link-btn"
+            onClick={() => {
+              setStage("email");
+              setOtp("");
+              setError("");
+              setStatus("idle");
+            }}
+          >
+            Use a different email
+          </button>
+        </form>
+      </FormModal>
+    );
+  }
+
+  // stage === "details"
   return (
-    <FormModal title="Contact CSE Department" subtitle="Send a message directly to the department." onClose={onClose}>
+    <FormModal title="Contact CSE Department" subtitle="Almost done — write your message to the department." onClose={onClose}>
       <form className="ab-form" onSubmit={submit}>
         <div className="ab-field">
           <label htmlFor="cf-name">Full Name *</label>
           <input id="cf-name" required value={form.name} onChange={update("name")} placeholder="Your full name" />
         </div>
         <div className="ab-field">
-          <label htmlFor="cf-email">Email *</label>
-          <input id="cf-email" required type="email" value={form.email} onChange={update("email")} placeholder="you@example.com" />
+          <label>College Email</label>
+          <input value={form.email} disabled />
         </div>
         <div className="ab-field">
           <label htmlFor="cf-subject">Subject</label>

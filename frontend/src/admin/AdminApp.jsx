@@ -1,0 +1,89 @@
+import React, { useState, useEffect, useCallback } from "react";
+import { isLoggedIn } from "./adminApi.js";
+import AdminLogin from "./AdminLogin.jsx";
+import AdminLayout from "./AdminLayout.jsx";
+import DashboardHome from "./pages/DashboardHome.jsx";
+import EventsAdmin from "./pages/EventsAdmin.jsx";
+import TeamAdmin from "./pages/TeamAdmin.jsx";
+import ApplicationsAdmin from "./pages/ApplicationsAdmin.jsx";
+import MessagesAdmin from "./pages/MessagesAdmin.jsx";
+import GalleryAdmin from "./pages/GalleryAdmin.jsx";
+import SettingsAdmin from "./pages/SettingsAdmin.jsx";
+import "./adminStyles.css";
+
+const PAGE_META = {
+  dashboard: { title: "Dashboard", subtitle: "Overview of club activity" },
+  events: { title: "Events", subtitle: "Manage workshops, contests and sessions" },
+  team: { title: "Team Members", subtitle: "Manage who appears on the About page" },
+  applications: { title: "Membership Applications", subtitle: "Review and update join requests" },
+  messages: { title: "Contact Messages", subtitle: "Messages sent through the Contact form" },
+  gallery: { title: "Gallery", subtitle: "Manage photos linked to events" },
+  settings: { title: "Site Settings", subtitle: "Club info, theme and homepage stats" }
+};
+
+function pathToPage(pathname) {
+  const parts = pathname.replace(/\/+$/, "").split("/");
+  const sub = parts[3];
+  return PAGE_META[sub] ? sub : "dashboard";
+}
+
+export default function AdminApp() {
+  const [loggedIn, setLoggedIn] = useState(isLoggedIn());
+  const [page, setPageState] = useState(() =>
+    window.location.pathname.startsWith("/admin/dashboard") ? pathToPage(window.location.pathname) : "dashboard"
+  );
+
+  const setPage = useCallback((id) => {
+    setPageState(id);
+    const url = `/admin/dashboard/${id}`;
+    if (window.location.pathname !== url) window.history.pushState({}, "", url);
+  }, []);
+
+  useEffect(() => {
+    const onPop = () => {
+      setLoggedIn(isLoggedIn());
+      setPageState(pathToPage(window.location.pathname));
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (loggedIn) {
+      if (!path.startsWith("/admin/dashboard")) {
+        window.history.replaceState({}, "", "/admin/dashboard");
+        setPageState("dashboard");
+      }
+    } else if (path !== "/admin/login") {
+      window.history.replaceState({}, "", "/admin/login");
+    }
+  }, [loggedIn]);
+
+  const handleLoginSuccess = () => {
+    setLoggedIn(true);
+    setPageState("dashboard");
+    window.history.replaceState({}, "", "/admin/dashboard");
+  };
+
+  const handleLogout = () => {
+    setLoggedIn(false);
+    window.history.replaceState({}, "", "/admin/login");
+  };
+
+  if (!loggedIn) return <AdminLogin onSuccess={handleLoginSuccess} />;
+
+  const meta = PAGE_META[page] || PAGE_META.dashboard;
+
+  return (
+    <AdminLayout page={page} setPage={setPage} title={meta.title} subtitle={meta.subtitle} onLogout={handleLogout}>
+      {page === "dashboard" && <DashboardHome />}
+      {page === "events" && <EventsAdmin />}
+      {page === "team" && <TeamAdmin />}
+      {page === "applications" && <ApplicationsAdmin />}
+      {page === "messages" && <MessagesAdmin />}
+      {page === "gallery" && <GalleryAdmin />}
+      {page === "settings" && <SettingsAdmin />}
+    </AdminLayout>
+  );
+}

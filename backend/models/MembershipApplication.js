@@ -4,6 +4,7 @@ const membershipApplicationSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
+    usn: { type: String, required: true, trim: true, uppercase: true },
     phone: { type: String, default: "" },
     year: { type: String, default: "" },
     branch: { type: String, default: "" },
