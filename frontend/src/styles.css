@@ -378,3 +378,5 @@ footer .copy{margin-top:34px;padding-top:20px;border-top:1px solid var(--border)
 .intro.intro-video{background:#000;cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none}
 .intro-video-el{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;user-select:none}
 @media (max-width:700px){.intro-video-el{object-fit:cover}}
+/* cursor ball + trail must draw above the intro video (intro is z-index 900) */
+html.intro-on canvas#trail{z-index:1000}
