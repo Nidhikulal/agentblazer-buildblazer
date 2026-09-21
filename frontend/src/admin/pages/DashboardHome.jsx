@@ -1,23 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { getAdminStats, getAdminEvents, getApplications, getMessages } from "../adminApi.js";
+import { getAdminStats, getAdminEvents, getApplications } from "../adminApi.js";
+
+const APPLICATION_STATUS_LABEL = {
+  aptitude_pending: "Aptitude round",
+  interview_pending: "Interview round",
+  selected: "Selected",
+  rejected: "Rejected"
+};
 
 export default function DashboardHome() {
   const [stats, setStats] = useState(null);
   const [recentEvents, setRecentEvents] = useState([]);
   const [recentApplications, setRecentApplications] = useState([]);
-  const [recentMessages, setRecentMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let alive = true;
-    Promise.all([getAdminStats(), getAdminEvents(), getApplications(), getMessages()])
-      .then(([statsData, events, applications, messages]) => {
+    Promise.all([getAdminStats(), getAdminEvents(), getApplications()])
+      .then(([statsData, events, applications]) => {
         if (!alive) return;
         setStats(statsData);
         setRecentEvents([...events].slice(-5).reverse());
         setRecentApplications(applications.slice(0, 5));
-        setRecentMessages(messages.slice(0, 5));
       })
       .catch((err) => { if (alive) setError(err.message || "Could not load dashboard data"); })
       .finally(() => { if (alive) setLoading(false); });
@@ -30,9 +35,7 @@ export default function DashboardHome() {
   const cards = [
     { label: "Total Events", value: stats.events },
     { label: "Total Team Members", value: stats.teamMembers },
-    { label: "Membership Applications", value: stats.membershipApplications, hint: `${stats.pendingApplications} pending` },
-    { label: "Contact Messages", value: stats.contactMessages, hint: `${stats.newMessages} new` },
-    { label: "Gallery Items", value: stats.galleryItems }
+    { label: "Membership Applications", value: stats.membershipApplications, hint: `${stats.aptitudePending} aptitude · ${stats.interviewPending} interview · ${stats.selectedApplications} selected` }
   ];
 
   return (
@@ -71,23 +74,7 @@ export default function DashboardHome() {
               <thead><tr><th>Name</th><th>Email</th><th>Status</th></tr></thead>
               <tbody>
                 {recentApplications.map((a) => (
-                  <tr key={a._id}><td>{a.name}</td><td className="muted">{a.email}</td><td><span className={`adm-badge ${a.status}`}>{a.status}</span></td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="adm-section">
-        <h2>Recent Contact Messages</h2>
-        {recentMessages.length === 0 ? <div className="adm-empty">No messages yet.</div> : (
-          <div className="adm-table-wrap">
-            <table className="adm-table">
-              <thead><tr><th>Name</th><th>Email</th><th>Status</th></tr></thead>
-              <tbody>
-                {recentMessages.map((m) => (
-                  <tr key={m._id}><td>{m.name}</td><td className="muted">{m.email}</td><td><span className={`adm-badge ${m.status}`}>{m.status}</span></td></tr>
+                  <tr key={a._id}><td>{a.name}</td><td className="muted">{a.email}</td><td><span className={`adm-badge ${a.status}`}>{APPLICATION_STATUS_LABEL[a.status] || a.status}</span></td></tr>
                 ))}
               </tbody>
             </table>

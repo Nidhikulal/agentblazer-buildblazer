@@ -1,18 +1,25 @@
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/+$/, "");
-const TOKEN_KEY = "ab_admin_token";
-const ADMIN_KEY = "ab_admin_profile";
 
-export function getToken() { return localStorage.getItem(TOKEN_KEY); }
+// The admin session lives in memory only (never localStorage/sessionStorage),
+// so every page load / refresh / new visit starts at the login page.
+let sessionToken = null;
+let sessionAdmin = null;
+
+// Remove any session saved by older versions of this panel.
+try {
+  localStorage.removeItem("ab_admin_token");
+  localStorage.removeItem("ab_admin_profile");
+} catch (e) {}
+
+export function getToken() { return sessionToken; }
 export function setSession(token, admin) {
-  localStorage.setItem(TOKEN_KEY, token);
-  if (admin) localStorage.setItem(ADMIN_KEY, JSON.stringify(admin));
+  sessionToken = token;
+  sessionAdmin = admin || null;
 }
-export function getAdminProfile() {
-  try { return JSON.parse(localStorage.getItem(ADMIN_KEY) || "null"); } catch (e) { return null; }
-}
+export function getAdminProfile() { return sessionAdmin; }
 export function clearSession() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(ADMIN_KEY);
+  sessionToken = null;
+  sessionAdmin = null;
 }
 export function isLoggedIn() { return Boolean(getToken()); }
 
@@ -51,16 +58,12 @@ export const updateTeamMember = (id, payload) => request(`/team/${id}`, { method
 export const deleteTeamMember = (id) => request(`/team/${id}`, { method: "DELETE" });
 
 export const getApplications = () => request("/members");
-export const updateApplicationStatus = (id, status) =>
-  request(`/members/${id}/status`, { method: "PUT", body: JSON.stringify({ status }) });
-
-export const getMessages = () => request("/contact");
-export const updateMessageStatus = (id, status) =>
-  request(`/contact/${id}/status`, { method: "PUT", body: JSON.stringify({ status }) });
-
-export const getAdminGallery = () => request("/gallery");
-export const createGalleryItem = (payload) => request("/gallery", { method: "POST", body: JSON.stringify(payload) });
-export const deleteGalleryItem = (id) => request(`/gallery/${id}`, { method: "DELETE" });
+// Record the result of a recruitment round ("aptitude" | "interview") as
+// "selected" | "rejected". The backend emails the applicant automatically.
+export const evaluateApplication = (id, round, result, note) =>
+  request(`/members/${id}/evaluate`, { method: "PUT", body: JSON.stringify({ round, result, note }) });
+export const resendApplicationEmail = (id, round) =>
+  request(`/members/${id}/resend-email`, { method: "POST", body: JSON.stringify({ round }) });
 
 export const getAdminSettings = () => request("/settings");
 export const updateAdminSettings = (payload) => request("/settings", { method: "PUT", body: JSON.stringify(payload) });

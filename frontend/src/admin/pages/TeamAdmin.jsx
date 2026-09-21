@@ -87,7 +87,6 @@ function PhotoUploader({ value, onChange, onBusyChange }) {
     </div>
   );
 }
-
 function MemberFormModal({ initial, onClose, onSaved }) {
   const isEdit = Boolean(initial);
   const [form, setForm] = useState(initial ? { ...EMPTY_FORM, ...initial } : EMPTY_FORM);
@@ -120,13 +119,14 @@ function MemberFormModal({ initial, onClose, onSaved }) {
         <form className="ab-form" onSubmit={submit}>
           <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="Full name" /></div>
           <div className="ab-row">
-            <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")} placeholder="e.g. Tech Lead" /></div>
-            <div className="ab-field"><label>Category</label><input value={form.category} onChange={update("category")} placeholder="e.g. Tech Lead" /></div>
+            <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")}  /></div>
+            <div className="ab-field"><label>Category</label><input value={form.category} onChange={update("category")}  /></div>
           </div>
-          <div className="ab-field"><label>Department / Focus Area</label><input value={form.department} onChange={update("department")} placeholder="e.g. Technical Direction" /></div>
+          <div className="ab-field"><label>Department / Focus Area</label><input value={form.department} onChange={update("department")}  /></div>
           <div className="ab-field"><label>Description</label><textarea rows={3} value={form.description} onChange={update("description")} placeholder="What do they do for the club?" /></div>
           <div className="ab-row">
-          <PhotoUploader value={form.image} onChange={(img) => setForm((f) => ({ ...f, image: img }))} onBusyChange={setPhotoBusy} />            <div className="ab-field"><label>Display Order</label><input type="number" min="0" value={form.order} onChange={update("order")} placeholder="e.g. 1" /></div>
+            <PhotoUploader value={form.image} onChange={(img) => setForm((f) => ({ ...f, image: img }))} onBusyChange={setPhotoBusy} />
+            <div className="ab-field"><label>Display Order</label><input type="number" min="0" value={form.order} onChange={update("order")}  /></div>
           </div>
           {status === "error" && <div className="ab-form-msg error">{error}</div>}
           <button className="btn primary" type="submit" disabled={status === "sending" || photoBusy}>

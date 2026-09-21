@@ -13,6 +13,37 @@ import {
   requestContactOtp,
   verifyContactOtp
 } from "./api.js";
+
+/* ---------- site settings (managed from Admin → Site Settings) ---------- */
+const THEMES = ["violet", "inferno", "frost"];
+
+const DEFAULT_SETTINGS = {
+  clubName: "AgentBlazer Club",
+  academicYear: "2025–2026",
+  defaultTheme: "violet",
+  contactEmail: "agentblazer@sjec.ac.in",
+  address: "Department of Computer Science & Engineering, St Joseph Engineering College, Mangaluru, Karnataka – 575028, India",
+  stats: { workshops: "8+", studentsReached: "500+", partner: "Salesforce" }
+};
+
+function mergeSettings(data) {
+  const d = data || {};
+  const pick = (v, fb) => (typeof v === "string" && v.trim() ? v.trim() : fb);
+  const s = d.stats || {};
+  return {
+    clubName: DEFAULT_SETTINGS.clubName,
+    academicYear: pick(d.academicYear, DEFAULT_SETTINGS.academicYear),
+    defaultTheme: THEMES.includes(d.defaultTheme) ? d.defaultTheme : DEFAULT_SETTINGS.defaultTheme,
+    contactEmail: pick(d.contactEmail, DEFAULT_SETTINGS.contactEmail),
+    address: pick(d.address, DEFAULT_SETTINGS.address),
+    stats: {
+      workshops: pick(s.workshops, DEFAULT_SETTINGS.stats.workshops),
+      studentsReached: pick(s.studentsReached, DEFAULT_SETTINGS.stats.studentsReached),
+      partner: pick(s.partner, DEFAULT_SETTINGS.stats.partner)
+    }
+  };
+}
+
 /* ---------- map backend data shapes to the shapes this UI expects ---------- */
 const EVENT_TAG_COLORS = ["c1", "c2", "c3", "c4"];
 
@@ -118,19 +149,24 @@ const ThemeIcon = ({ t }) =>
   );
 
 function CountUp({ to }) {
+  const raw = String(to ?? "").trim();
+  const m = raw.match(/^(\D*)(\d[\d,]*)(.*)$/);
+  const target = m ? parseInt(m[2].replace(/,/g, ""), 10) : 0;
   const [v, setV] = useState(0);
   useEffect(() => {
+    if (!m) return;
     let raf;
     const t0 = performance.now(), d = 1400;
     const f = (t) => {
       const p = Math.min(1, (t - t0) / d);
-      setV(Math.round(to * (1 - Math.pow(1 - p, 3))));
+      setV(Math.round(target * (1 - Math.pow(1 - p, 3))));
       if (p < 1) raf = requestAnimationFrame(f);
     };
     raf = requestAnimationFrame(f);
     return () => cancelAnimationFrame(raf);
-  }, [to]);
-  return <>{v}+</>;
+  }, [target]);
+  if (!m) return <>{raw}</>;
+  return <>{m[1]}{v}{m[3]}</>;
 }
 
 /* ---------- canvases ---------- */
@@ -278,6 +314,7 @@ function IntroSplash({ onDone }) {
     </div>
   );
 }
+
 /* ---------- hover popover (person photo / event gallery) ---------- */
 function GalleryBody({ g }) {
   const [i, setI] = useState(g.start);
@@ -304,7 +341,7 @@ function Popover({ hover }) {
   if (hover) last.current = hover;
   const h = hover || last.current;
 
-    useLayoutEffect(() => {
+  useLayoutEffect(() => {
     if (!hover || !ref.current) return;
     const el = ref.current, r = hover.rect, pw = el.offsetWidth, ph = el.offsetHeight;
     const gap = hover.kind === "gal" ? 24 : 20;
@@ -374,7 +411,7 @@ function Header({ page, go, theme, setTheme }) {
           ))}
         </nav>
         <div className="themes">
-          {["violet", "inferno", "frost"].map((t) => (
+          {THEMES.map((t) => (
             <button key={t} className={theme === t ? "active" : ""} data-t={t} onClick={() => setTheme(t)}>
               <ThemeIcon t={t} />{t[0].toUpperCase() + t.slice(1)}
             </button>
@@ -385,13 +422,13 @@ function Header({ page, go, theme, setTheme }) {
   );
 }
 
-function Footer({ go }) {
+function Footer({ go, settings }) {
   return (
     <footer>
       <div className="wrap">
         <div className="fgrid3">
           <div>
-            <div className="fbrand"><div className="logo-box"><Logo /></div>AgentBlazer Club</div>
+            <div className="fbrand"><div className="logo-box"><Logo /></div>{settings.clubName}</div>
             <p className="d">Department of Computer Science &amp; Engineering</p>
             <p className="s">St Joseph Engineering College, Vamanjoor, Mangaluru. A student-led collective for autonomous and agentic AI.</p>
           </div>
@@ -407,34 +444,15 @@ function Footer({ go }) {
             <p>Empowered by faculty guidance and student initiative.</p>
           </div>
         </div>
-        <div className="copy">© 2026 AgentBlazer Club · Dept. of CSE, SJEC</div>
+        <div className="copy">© 2026 {settings.clubName} · Dept. of CSE, SJEC</div>
       </div>
     </footer>
   );
 }
 
 /* ---------- pages ---------- */
-function Home({ go }) {
-  const [stats, setStats] = useState({ workshops: 8, studentsReached: 500, partner: "Salesforce" });
-
-  useEffect(() => {
-    let alive = true;
-    getSettings()
-      .then((data) => {
-        if (!alive || !data || !data.stats) return;
-        setStats({
-          workshops: parseInt(data.stats.workshops, 10) || 8,
-          studentsReached: parseInt(data.stats.studentsReached, 10) || 500,
-          partner: data.stats.partner || "Salesforce"
-        });
-      })
-      .catch((err) => {
-        console.warn("Could not load site settings from backend, showing default stats:", err.message);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+function Home({ go, settings }) {
+  const stats = settings.stats;
 
   return (
     <section className="page active" id="home">
@@ -474,7 +492,7 @@ function Home({ go }) {
   );
 }
 
-function About({ hover, setHover }) {
+function About({ hover, setHover, settings }) {
   const [team, setTeam] = useState(FALLBACK_TEAM);
 
   useEffect(() => {
@@ -511,7 +529,7 @@ function About({ hover, setHover }) {
           <div className="inaug">
             <small>Inaugurated on</small>
             <div className="d">August 25, 2025</div>
-            <div className="chips"><span>Academic Year 2025–2026</span><span>SJEC Campus</span></div>
+            <div className="chips"><span>Academic Year {settings.academicYear}</span><span>SJEC Campus</span></div>
           </div>
         </div>
 
@@ -552,7 +570,7 @@ function About({ hover, setHover }) {
           </div>
         </div>
 
-        <h3 className="sec-title">Student Core Team <span className="ital">&amp; Officers</span><span className="right">Academic Year 2025–2026</span></h3>
+        <h3 className="sec-title">Student Core Team <span className="ital">&amp; Officers</span><span className="right">Academic Year {settings.academicYear}</span></h3>
         <div className="team">
           {team.map((m) => (
             <div
@@ -585,7 +603,7 @@ function About({ hover, setHover }) {
   );
 }
 
-function Events({ hover, setHover }) {
+function Events({ hover, setHover, settings }) {
   const [events, setEvents] = useState(FALLBACK_EVENTS);
 
   useEffect(() => {
@@ -608,7 +626,7 @@ function Events({ hover, setHover }) {
       <div className="glow-bg" />
       <div className="wrap">
         <div className="ev-head">
-          <span className="chip up" style={{ color: "#b9a9ff" }}>Workshops &amp; Live Sessions • Academic Year 2025–2026</span>
+          <span className="chip up" style={{ color: "#b9a9ff" }}>Workshops &amp; Live Sessions • Academic Year {settings.academicYear}</span>
           <h2>Workshops, Contests <span className="ital">&amp; Masterclasses</span></h2>
           <p>Hands-on technical deep dives, algorithmic challenges, and real-world system deployments with seasoned engineers.</p>
         </div>
@@ -847,6 +865,7 @@ function MembershipForm({ onClose }) {
     </FormModal>
   );
 }
+
 function ContactForm({ onClose }) {
   const [stage, setStage] = useState("email"); // email | otp | details | done
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -1007,17 +1026,19 @@ function ContactForm({ onClose }) {
   );
 }
 
-function Join() {
+function Join({ settings }) {
   const [modal, setModal] = useState(null); // null | "join" | "contact"
+  const [addrHead, ...addrRest] = settings.address.split(",");
+  const addrTail = addrRest.join(",").trim();
   return (
     <section className="page active" id="join">
       <div className="glow-bg" />
       <div className="flames"><i /><i /></div>
       <div className="wrap">
         <div className="jlogo"><Logo /></div>
-        <span className="chip dot" style={{ marginTop: 38 }}>Membership Intake • Academic Year 2025–2026</span>
+        <span className="chip dot" style={{ marginTop: 38 }}>Membership Intake • Academic Year {settings.academicYear}</span>
         <h2 style={{ marginTop: 26 }}>Ready to Build with <span className="ital">Autonomous Intelligence?</span></h2>
-        <p className="lead">Join the AgentBlazer Club at SJEC CSE. Collaborate with peers, gain hands-on access to Salesforce Trailhead developer orgs, and shape real AI agent projects.</p>
+        <p className="lead">Join the {settings.clubName} at SJEC CSE. Collaborate with peers, gain hands-on access to Salesforce Trailhead developer orgs, and shape real AI agent projects.</p>
         <div className="actions">
           <button type="button" className="btn primary" onClick={() => setModal("join")}>
             Become a Member
@@ -1031,10 +1052,9 @@ function Join() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10 21v-3h4v3" /></svg>
           </div>
           <div>
-            <h5>Department of Computer Science &amp; Engineering</h5>
-            <small>St Joseph Engineering College, Vamanjoor</small>
-            <small className="m2">Mangaluru, Karnataka – 575028, India</small>
-            <div className="em">Direct Inquiries: <a href="mailto:agentblazer@sjec.ac.in">agentblazer@sjec.ac.in</a></div>
+            <h5>{addrHead.trim()}</h5>
+            {addrTail && <small className="m2">{addrTail}</small>}
+            <div className="em">Direct Inquiries: <a href={`mailto:${settings.contactEmail}`}>{settings.contactEmail}</a></div>
           </div>
         </div>
       </div>
@@ -1049,25 +1069,59 @@ const initialPage = () => {
   const h = (window.location.hash || "#home").slice(1);
   return NAV.some((n) => n.id === h) ? h : "home";
 };
-const initialTheme = () => {
-  try { const s = localStorage.getItem("ab-theme"); if (["violet", "inferno", "frost"].includes(s)) return s; } catch (e) {}
-  return "violet";
+
+// A visitor's own theme choice (only saved when they click a theme button)
+const getVisitorTheme = () => {
+  try {
+    const s = localStorage.getItem("ab-theme-user");
+    return THEMES.includes(s) ? s : null;
+  } catch (e) {
+    return null;
+  }
 };
 
 export default function App() {
   const [page, setPage] = useState(initialPage);
-  const [theme, setTheme] = useState(initialTheme);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [userTheme, setUserTheme] = useState(getVisitorTheme);
   const [hover, setHover] = useState(null);
   const [introDone, setIntroDone] = useState(false);
 
+  // Visitor's own pick wins; otherwise use the admin's Default Theme
+  const theme = userTheme || settings.defaultTheme;
+  const setTheme = (t) => {
+    setUserTheme(t);
+    try { localStorage.setItem("ab-theme-user", t); } catch (e) {}
+  };
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem("ab-theme", theme); } catch (e) {}
   }, [theme]);
 
   useEffect(() => {
-    document.title = "AgentBlazer Club | Dept. of CSE, St Joseph Engineering College";
+    document.title = `${settings.clubName} | Dept. of CSE, St Joseph Engineering College`;
+  }, [settings.clubName]);
+
+  // Load site settings from the backend, and re-check when the tab regains focus
+  // and every 60s, so admin changes appear without the visitor reloading.
+  const loadSettings = useCallback(() => {
+    getSettings()
+      .then((data) => setSettings(mergeSettings(data)))
+      .catch((err) => console.warn("Could not load site settings:", err.message));
   }, []);
+
+  useEffect(() => {
+    loadSettings();
+    const onVisible = () => { if (document.visibilityState === "visible") loadSettings(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", loadSettings);
+    const timer = setInterval(loadSettings, 60000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", loadSettings);
+      clearInterval(timer);
+    };
+  }, [loadSettings]);
 
   // While the intro video is up, lift the cursor-trail canvas above it
   useEffect(() => {
@@ -1091,12 +1145,12 @@ export default function App() {
       <div className={`site ${introDone ? "in" : ""}`}>
         <Header page={page} go={go} theme={theme} setTheme={setTheme} />
         <main>
-          {page === "home" && <Home go={go} />}
-          {page === "about" && <About hover={hover} setHover={setHover} />}
-          {page === "events" && <Events hover={hover} setHover={setHover} />}
-          {page === "join" && <Join />}
+          {page === "home" && <Home go={go} settings={settings} />}
+          {page === "about" && <About hover={hover} setHover={setHover} settings={settings} />}
+          {page === "events" && <Events hover={hover} setHover={setHover} settings={settings} />}
+          {page === "join" && <Join settings={settings} />}
         </main>
-        <Footer go={go} />
+        <Footer go={go} settings={settings} />
         <Popover hover={popHover} />
       </div>
       <CursorTrail />

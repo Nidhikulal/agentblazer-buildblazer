@@ -6,8 +6,6 @@ import DashboardHome from "./pages/DashboardHome.jsx";
 import EventsAdmin from "./pages/EventsAdmin.jsx";
 import TeamAdmin from "./pages/TeamAdmin.jsx";
 import ApplicationsAdmin from "./pages/ApplicationsAdmin.jsx";
-import MessagesAdmin from "./pages/MessagesAdmin.jsx";
-import GalleryAdmin from "./pages/GalleryAdmin.jsx";
 import SettingsAdmin from "./pages/SettingsAdmin.jsx";
 import "./adminStyles.css";
 
@@ -15,9 +13,7 @@ const PAGE_META = {
   dashboard: { title: "Dashboard", subtitle: "Overview of club activity" },
   events: { title: "Events", subtitle: "Manage workshops, contests and sessions" },
   team: { title: "Team Members", subtitle: "Manage who appears on the About page" },
-  applications: { title: "Membership Applications", subtitle: "Review and update join requests" },
-  messages: { title: "Contact Messages", subtitle: "Messages sent through the Contact form" },
-  gallery: { title: "Gallery", subtitle: "Manage photos linked to events" },
+  applications: { title: "Membership Applications", subtitle: "Run the aptitude and interview rounds and notify applicants" },
   settings: { title: "Site Settings", subtitle: "Club info, theme and homepage stats" }
 };
 
@@ -81,8 +77,6 @@ export default function AdminApp() {
       {page === "events" && <EventsAdmin />}
       {page === "team" && <TeamAdmin />}
       {page === "applications" && <ApplicationsAdmin />}
-      {page === "messages" && <MessagesAdmin />}
-      {page === "gallery" && <GalleryAdmin />}
       {page === "settings" && <SettingsAdmin />}
     </AdminLayout>
   );

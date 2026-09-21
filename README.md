@@ -48,3 +48,25 @@ Live link: _add once deployed_
 
 ---
 Organized by **AgentBlazer Club**, SJEC, in collaboration with **Cipher (CSE Association)**.
+
+
+---
+
+## Run locally (AgentBlazer Club website)
+
+1. Copy `backend/.env.example` to `backend/.env` and fill in `MONGODB_URI`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` and the `SMTP_*` values.
+2. Copy `frontend/.env.example` to `frontend/.env` (defaults work for local use).
+3. From this folder run:
+
+```bash
+npm run install:all     # installs root, backend and frontend dependencies
+npm run create-admin    # one time: creates the admin login
+npm run dev             # starts backend (port 5000) and frontend (port 5173) together
+```
+
+Open http://localhost:5173 for the site and http://localhost:5173/admin for the admin panel.
+
+Notes:
+- Applicants get a confirmation email as soon as they submit the membership form.
+- The admin panel always asks for login first (the session is not stored across refreshes).
+- Gallery and Contact Messages are no longer in the admin panel.

@@ -2,15 +2,14 @@ import React, { useState } from "react";
 import { getAdminProfile, clearSession } from "./adminApi.js";
 import AdminBackground from "./AdminBackground.jsx";
 import AdminCursorTrail from "./AdminCursorTrail.jsx";
+import logoImg from "../assets/logo.png";
 
 const NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard", icon: "📊" },
-  { id: "events", label: "Events", icon: "📅" },
-  { id: "team", label: "Team Members", icon: "👥" },
-  { id: "applications", label: "Membership Applications", icon: "📝" },
-  { id: "messages", label: "Contact Messages", icon: "✉️" },
-  { id: "gallery", label: "Gallery", icon: "🖼️" },
-  { id: "settings", label: "Site Settings", icon: "⚙️" }
+  { id: "dashboard", label: "Dashboard" },
+  { id: "events", label: "Events" },
+  { id: "team", label: "Team Members"  },
+  { id: "applications", label: "Membership Applications" },
+  { id: "settings", label: "Site Settings" }
 ];
 
 export default function AdminLayout({ page, setPage, title, subtitle, onLogout, children }) {
@@ -27,7 +26,7 @@ export default function AdminLayout({ page, setPage, title, subtitle, onLogout, 
       {mobileOpen && <div className="adm-overlay" onClick={() => setMobileOpen(false)} />}
       <aside className={`adm-sidebar${mobileOpen ? " open" : ""}`}>
         <div className="adm-brand">
-          <div className="logo">⚡</div>
+          <div className="logo"><img src={logoImg} alt="AgentBlazer" /></div>
           <div><b>AgentBlazer</b><span>Admin Panel</span></div>
         </div>
         <nav className="adm-nav">

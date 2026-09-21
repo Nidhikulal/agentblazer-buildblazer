@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getAdminSettings, updateAdminSettings } from "../adminApi.js";
 
 const THEME_OPTIONS = [
-  { id: "violet", label: "⚡ Violet" },
+  { id: "violet", label: "🟣 Violet" },
   { id: "inferno", label: "🔥 Inferno" },
   { id: "frost", label: "❄️ Frost" }
 ];
@@ -19,7 +19,7 @@ export default function SettingsAdmin() {
       .then((data) => {
         if (!alive) return;
         setForm({
-          clubName: data.clubName || "",
+          
           academicYear: data.academicYear || "",
           defaultTheme: data.defaultTheme || "violet",
           contactEmail: data.contactEmail || "",
@@ -61,10 +61,9 @@ export default function SettingsAdmin() {
       <h2>Site Settings</h2>
       <form className="ab-form" onSubmit={submit} style={{ maxWidth: 520 }}>
         <div className="ab-row">
-          <div className="ab-field"><label>Club Name</label><input value={form.clubName} onChange={update("clubName")} placeholder="AgentBlazer Club" /></div>
-          <div className="ab-field"><label>Academic Year</label><input value={form.academicYear} onChange={update("academicYear")} placeholder="2025-2026" /></div>
-        </div>
-        <div className="ab-field"><label>Contact Email</label><input type="email" value={form.contactEmail} onChange={update("contactEmail")} placeholder="agentblazer@sjec.ac.in" /></div>
+  <div className="ab-field"><label>Academic Year</label><input value={form.academicYear} onChange={update("academicYear")} placeholder="2025-2026" /></div>
+  <div className="ab-field"><label>Contact Email</label><input type="email" value={form.contactEmail} onChange={update("contactEmail")} placeholder="agentblazer@sjec.ac.in" /></div>
+</div>
         <div className="ab-field"><label>Address</label><textarea rows={2} value={form.address} onChange={update("address")} placeholder="Department of CSE, St Joseph Engineering College..." /></div>
         <div className="ab-field">
           <label>Default Theme</label>

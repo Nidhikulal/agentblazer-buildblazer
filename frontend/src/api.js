@@ -28,7 +28,7 @@ async function request(path, options = {}) {
 /* ---------- public read endpoints ---------- */
 export const getEvents = () => request("/events");
 export const getTeam = () => request("/team");
-export const getSettings = () => request("/settings");
+export const getSettings = () => request("/settings", { cache: "no-store" });
 export const getThemes = () => request("/settings/themes");
 export const getStats = () => request("/stats");
 

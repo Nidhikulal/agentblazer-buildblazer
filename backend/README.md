@@ -81,7 +81,8 @@ Important: for the three buttons at the top-right, the frontend should normally 
 - `POST /api/gallery`
 - `DELETE /api/gallery/:id`
 - `GET /api/members`
-- `PUT /api/members/:id/status`
+- `PUT /api/members/:id/evaluate` — record an aptitude/interview result `{ round, result, note? }`; emails the applicant
+- `POST /api/members/:id/resend-email` — retry a round's result email `{ round }`
 - `GET /api/contact`
 - `PUT /api/contact/:id/status`
 - `PUT /api/settings/theme`
