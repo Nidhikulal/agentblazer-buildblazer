@@ -82,7 +82,8 @@ function mapBackendEvent(e, idx) {
 function mapBackendMember(m) {
   return {
     id: m._id,
-    photo: teamPhotoFor(m.name),
+        photo: teamPhotoFor(m.name),
+    image: m.image || "",
     ini: initialsFor(m.name),
     hue: 210,
     tag: m.department || m.category || "Team Member",
@@ -338,7 +339,11 @@ function Popover({ hover }) {
       {h && h.kind === "person" && (
         <>
           <div className="ph">
-            <img alt={h.data.name} src={PHOTOS[h.data.photo] || avatar(h.data.ini, h.data.hue)} />
+            <img
+  alt={h.data.name}
+  src={h.data.image || PHOTOS[h.data.photo] || avatar(h.data.ini, h.data.hue)}
+  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = avatar(h.data.ini, h.data.hue); }}
+/>
             <span className="tag">LEADERSHIP</span><span className="sj">SJEC CSE</span>
           </div>
           <h6>{h.data.name}</h6><div className="sub">{h.data.pop}</div>

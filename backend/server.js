@@ -40,8 +40,11 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
+// Raised from 2mb so events with several uploaded photos (stored as base64
+// in the gallery array) fit in a single request, while staying safely under
+// MongoDB's 16MB per-document limit.
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 app.use(sanitizeInput);
 
 app.get("/", (req, res) => {

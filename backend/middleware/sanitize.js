@@ -5,8 +5,13 @@
 
 const FIELDS_TO_SKIP = new Set(["password"]);
 
+// Uploaded photos arrive as base64 data URLs. They can only contain
+// [A-Za-z0-9+/=] after a fixed prefix, so they are safe by construction.
+const IMAGE_DATA_URL = /^data:image\/(?:jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;
+
 function stripHtml(value) {
   if (typeof value !== "string") return value;
+  if (IMAGE_DATA_URL.test(value)) return value;
 
   let cleaned = value;
   // Remove script/style blocks entirely (including their content)

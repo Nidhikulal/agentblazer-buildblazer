@@ -1,15 +1,105 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { getAdminEvents, createEvent, updateEvent, deleteEvent } from "../adminApi.js";
 
-const EMPTY_FORM = { date: "", title: "", category: "", description: "", speaker: "", venue: "", track: "", shortlistedStudents: "", galleryCount: "", image: "" };
+const EMPTY_FORM = { date: "", title: "", category: "", description: "", speaker: "", venue: "", track: "", shortlistedStudents: "", galleryCount: "", image: "", gallery: [] };
+
+// Max longest-edge size + quality photos get compressed to before upload.
+// Keeps each photo small (~100-300KB) so many photos can be stored per event
+// without blowing past the request/document size limits.
+const MAX_DIMENSION = 1600;
+const JPEG_QUALITY = 0.82;
+
+// Reads a File and returns a compressed base64 JPEG data URL, resized so its
+// longest edge is at most MAX_DIMENSION. Runs entirely in the browser.
+function compressImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read file"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Could not read image"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > MAX_DIMENSION) {
+          height = Math.round((height * MAX_DIMENSION) / width);
+          width = MAX_DIMENSION;
+        } else if (height > MAX_DIMENSION) {
+          width = Math.round((width * MAX_DIMENSION) / height);
+          height = MAX_DIMENSION;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function PhotoUploader({ photos, setPhotos }) {
+  const inputRef = useRef(null);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleFiles = async (fileList) => {
+    const files = Array.from(fileList || []).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+    setWorking(true);
+    setError("");
+    try {
+      const compressed = await Promise.all(files.map(compressImageFile));
+      setPhotos((prev) => [...prev, ...compressed]);
+    } catch (err) {
+      setError("Could not process one or more photos. Try a different image.");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const removeAt = (idx) => setPhotos((prev) => prev.filter((_, i) => i !== idx));
+
+  return (
+    <div className="ab-field">
+      <label>Event Photos</label>
+      <div className="ph-uploader">
+        {photos.map((src, idx) => (
+          <div className="ph-thumb" key={idx}>
+            <img src={src} alt={`Event photo ${idx + 1}`} />
+            <button type="button" className="ph-thumb-remove" title="Remove photo" onClick={() => removeAt(idx)}>×</button>
+          </div>
+        ))}
+        <button type="button" className="ph-add-btn" onClick={() => inputRef.current && inputRef.current.click()} disabled={working}>
+          {working ? "Adding…" : "+ Add Photos"}
+        </button>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: "none" }}
+        onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+      />
+      <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
+        Upload any number of photos from your device. They'll appear in the event's gallery on the site — a placeholder is shown automatically for any slot without a photo.
+      </span>
+      {error && <div className="ab-form-msg error">{error}</div>}
+    </div>
+  );
+}
 
 function EventFormModal({ initial, onClose, onSaved }) {
   const isEdit = Boolean(initial);
-  const [form, setForm] = useState(initial ? { ...EMPTY_FORM, ...initial } : EMPTY_FORM);
+  const [form, setForm] = useState(initial ? { ...EMPTY_FORM, ...initial, gallery: Array.isArray(initial.gallery) ? initial.gallery : [] } : EMPTY_FORM);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const setPhotos = (updater) => setForm((f) => ({ ...f, gallery: typeof updater === "function" ? updater(f.gallery) : updater }));
 
   const submit = async (e) => {
     e.preventDefault();
@@ -19,7 +109,10 @@ function EventFormModal({ initial, onClose, onSaved }) {
       const payload = {
         ...form,
         shortlistedStudents: form.shortlistedStudents ? Number(form.shortlistedStudents) : undefined,
-        galleryCount: form.galleryCount ? Number(form.galleryCount) : undefined
+        galleryCount: form.gallery.length || (form.galleryCount ? Number(form.galleryCount) : undefined),
+        // Keep the cover image in sync with the first uploaded photo so any
+        // older code path that still reads `image` continues to work.
+        image: form.gallery[0] || form.image || ""
       };
       if (isEdit) await updateEvent(initial._id, payload);
       else await createEvent(payload);
@@ -50,7 +143,7 @@ function EventFormModal({ initial, onClose, onSaved }) {
             <div className="ab-field"><label>Track</label><input value={form.track} onChange={update("track")} placeholder="Optional" /></div>
             <div className="ab-field"><label>Shortlisted Students</label><input type="number" min="0" value={form.shortlistedStudents} onChange={update("shortlistedStudents")} placeholder="Optional" /></div>
           </div>
-          <div className="ab-field"><label>Image URL</label><input value={form.image} onChange={update("image")} placeholder="Optional" /></div>
+          <PhotoUploader photos={form.gallery} setPhotos={setPhotos} />
           {status === "error" && <div className="ab-form-msg error">{error}</div>}
           <button className="btn primary" type="submit" disabled={status === "sending"}>
             {status === "sending" ? "Saving…" : isEdit ? "Save Changes" : "Add Event"}

@@ -1,13 +1,99 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { getAdminTeam, createTeamMember, updateTeamMember, deleteTeamMember } from "../adminApi.js";
 
 const EMPTY_FORM = { name: "", role: "", category: "", department: "", description: "", image: "", order: "" };
+// Photos are resized + compressed in the browser before saving, so each one is
+// roughly 60-150 KB and the public team API stays light.
+const MAX_INPUT_MB = 10;
+const MAX_DIMENSION = 800;
+const JPEG_QUALITY = 0.8;
+
+function compressImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Could not read image")); };
+    img.onload = () => {
+      const scale = Math.min(1, MAX_DIMENSION / Math.max(img.width, img.height));
+      const width = Math.round(img.width * scale);
+      const height = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff"; // transparent PNGs would otherwise turn black as JPEG
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
+    };
+    img.src = url;
+  });
+}
+
+function PhotoUploader({ value, onChange, onBusyChange }) {
+  const inputRef = useRef(null);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState("");
+
+  const setBusy = (b) => { setWorking(b); if (onBusyChange) onBusyChange(b); };
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    setError("");
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file (JPG, PNG or WebP).");
+      return;
+    }
+    if (file.size > MAX_INPUT_MB * 1024 * 1024) {
+      setError(`That image is too large. Please choose one under ${MAX_INPUT_MB} MB.`);
+      return;
+    }
+    setBusy(true);
+    try {
+      onChange(await compressImageFile(file));
+    } catch (err) {
+      setError("Could not process that image. Try a JPG, PNG or WebP file.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="ab-field">
+      <label>Photo</label>
+      <div className="ph-uploader">
+        {value && (
+          <div className="ph-thumb">
+            <img src={value} alt="Team member preview" />
+            <button type="button" className="ph-thumb-remove" title="Remove photo" onClick={() => onChange("")}>×</button>
+          </div>
+        )}
+        <button type="button" className="ph-add-btn" onClick={() => inputRef.current && inputRef.current.click()} disabled={working}>
+          {working ? "Adding…" : value ? "Replace" : "+ Upload"}
+        </button>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => { handleFile(e.target.files && e.target.files[0]); e.target.value = ""; }}
+      />
+      <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
+        Optional. Upload one photo from your device. A placeholder is shown on the site if there is none.
+      </span>
+      {error && <div className="ab-form-msg error">{error}</div>}
+    </div>
+  );
+}
 
 function MemberFormModal({ initial, onClose, onSaved }) {
   const isEdit = Boolean(initial);
   const [form, setForm] = useState(initial ? { ...EMPTY_FORM, ...initial } : EMPTY_FORM);
-  const [status, setStatus] = useState("idle");
+    const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -40,11 +126,10 @@ function MemberFormModal({ initial, onClose, onSaved }) {
           <div className="ab-field"><label>Department / Focus Area</label><input value={form.department} onChange={update("department")} placeholder="e.g. Technical Direction" /></div>
           <div className="ab-field"><label>Description</label><textarea rows={3} value={form.description} onChange={update("description")} placeholder="What do they do for the club?" /></div>
           <div className="ab-row">
-            <div className="ab-field"><label>Image URL</label><input value={form.image} onChange={update("image")} placeholder="Optional" /></div>
-            <div className="ab-field"><label>Display Order</label><input type="number" min="0" value={form.order} onChange={update("order")} placeholder="e.g. 1" /></div>
+          <PhotoUploader value={form.image} onChange={(img) => setForm((f) => ({ ...f, image: img }))} onBusyChange={setPhotoBusy} />            <div className="ab-field"><label>Display Order</label><input type="number" min="0" value={form.order} onChange={update("order")} placeholder="e.g. 1" /></div>
           </div>
           {status === "error" && <div className="ab-form-msg error">{error}</div>}
-          <button className="btn primary" type="submit" disabled={status === "sending"}>
+          <button className="btn primary" type="submit" disabled={status === "sending" || photoBusy}>
             {status === "sending" ? "Saving…" : isEdit ? "Save Changes" : "Add Member"}
           </button>
         </form>
