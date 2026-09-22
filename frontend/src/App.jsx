@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import introVideo from "./assets/intro.mp4";
+import introVideo from "./assets/agentanimation.mp4";
+import eyeBackgroundVideo from "./assets/eye-background.mp4";
 import { PHOTOS, GUESTS, FACULTY, COMMITTEE, FALLBACK_EVENTS, FALLBACK_TEAM, NAV, CORE_TEAM_PHOTO_KEYS } from "./data.js";
 import {
   getEvents,
@@ -330,7 +331,7 @@ function IntroSplash({ onDone }) {
       tabIndex={0}
       aria-label="Tap anywhere to enter the AgentBlazer Club site"
     >
-      <video
+            <video
         ref={videoRef}
         className="intro-video-el"
         src={introVideo}
@@ -341,6 +342,9 @@ function IntroSplash({ onDone }) {
         preload="auto"
         disablePictureInPicture
       />
+      <div className="tap-continue" aria-hidden="true">
+        <span>Tap to Continue</span>
+      </div>
     </div>
   );
 }
@@ -534,8 +538,16 @@ function About({ hover, setHover, settings }) {
       .then((data) => {
         if (!alive) return;
         if (!Array.isArray(data) || data.length === 0) return;
-        const core = data.filter((m) => m.section !== "committee").map(mapBackendMember);
-        const comm = data.filter((m) => m.section === "committee").map(mapBackendCommittee);
+        // Always sort by `order` (then name as a tiebreaker) on the client
+        // too. The API is expected to already return members sorted this
+        // way, but relying on that alone means a stale server, a proxy, or
+        // a future change to the query can silently ship an unsorted list
+        // straight to the About page. Sorting here guarantees the on-screen
+        // order always matches each member's `order` value in the admin
+        // panel, no matter what order the API responds in.
+        const byOrder = (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.name).localeCompare(String(b.name));
+        const core = data.filter((m) => m.section !== "committee").sort(byOrder).map(mapBackendMember);
+        const comm = data.filter((m) => m.section === "committee").sort(byOrder).map(mapBackendCommittee);
         if (core.length > 0) setTeam(core);
         if (comm.length > 0) setCommittee(comm);
       })
@@ -1084,6 +1096,16 @@ function Join({ settings }) {
   return (
     <section className="page active" id="join">
       <div className="glow-bg" />
+      <video
+        className="join-bg-video"
+        src={eyeBackgroundVideo}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        disablePictureInPicture
+      />
       <div className="flames"><i /><i /></div>
       <div className="wrap">
         <div className="jlogo"><Logo /></div>

@@ -55,7 +55,7 @@ function readAndResizeImage(file) {
 
 // Reusable "upload one photo from your device" field with a live preview
 // and a placeholder shown whenever there's no photo yet.
-function ImageUploadField({ value, onChange, name, fallbackSrc }) {
+function ImageUploadField({ value, onChange, name, fallbackSrc, compact }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -85,7 +85,7 @@ function ImageUploadField({ value, onChange, name, fallbackSrc }) {
   };
 
   return (
-    <div className="ab-image-upload">
+    <div className={compact ? "ab-image-upload row" : "ab-image-upload"}>
       <div
         className="ab-image-preview"
         onClick={pick}
@@ -145,22 +145,25 @@ function CoreMemberFormModal({ initial, onClose, onSaved }) {
 
   return (
     <div className="ab-modal-overlay" onClick={onClose}>
-      <div className="ab-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="ab-modal wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <button type="button" className="ab-modal-close" onClick={onClose} aria-label="Close">×</button>
         <h3>{isEdit ? "Edit Team Member" : "Add Team Member"}</h3>
         <form className="ab-form" onSubmit={submit}>
-          <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="Full name" /></div>
           <div className="ab-row">
+            <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="Full name" /></div>
             <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")} placeholder="e.g. Tech Lead" /></div>
+          </div>
+          <div className="ab-row">
             <div className="ab-field"><label>Category</label><input value={form.category} onChange={update("category")} placeholder="e.g. Tech Lead" /></div>
+            <div className="ab-field"><label>Department / Focus Area</label><input value={form.department} onChange={update("department")} placeholder="e.g. Technical Direction" /></div>
           </div>
-          <div className="ab-field"><label>Department / Focus Area</label><input value={form.department} onChange={update("department")} placeholder="e.g. Technical Direction" /></div>
-                    <div className="ab-field"><label>Description</label><textarea rows={3} value={form.description} onChange={update("description")} placeholder="What do they do for the club?" /></div>
-          <div className="ab-field">
-            <label>Photo</label>
-            <ImageUploadField value={form.image} name={form.name} onChange={(dataUrl) => setForm((f) => ({ ...f, image: dataUrl }))} />
+          <div className="ab-field"><label>Description</label><textarea rows={2} value={form.description} onChange={update("description")} placeholder="What do they do for the club?" /></div>
+          <div className="ab-row">
+            <div className="ab-field">
+              <label>Photo</label>
+              <ImageUploadField compact value={form.image} name={form.name} onChange={(dataUrl) => setForm((f) => ({ ...f, image: dataUrl }))} />
+            </div>
           </div>
-          <div className="ab-field"><label>Position (1 = first)</label><input type="number" min="1" value={form.order} onChange={update("order")} placeholder="Leave blank to add at the end" /></div>
           {status === "error" && <div className="ab-form-msg error">{error}</div>}
           <button className="btn primary" type="submit" disabled={status === "sending"}>
             {status === "sending" ? "Saving…" : isEdit ? "Save Changes" : "Add Member"}
@@ -196,13 +199,14 @@ function CommitteeFormModal({ initial, onClose, onSaved }) {
 
   return (
     <div className="ab-modal-overlay" onClick={onClose}>
-      <div className="ab-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="ab-modal wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <button type="button" className="ab-modal-close" onClick={onClose} aria-label="Close">×</button>
         <h3>{isEdit ? "Edit Committee Member" : "Add Committee Member"}</h3>
         <form className="ab-form" onSubmit={submit}>
-          <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="Full name" /></div>
-          <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")} placeholder="e.g. Project Operations & Labs" /></div>
-          <div className="ab-field"><label>Position (1 = first)</label><input type="number" min="1" value={form.order} onChange={update("order")} placeholder="Leave blank to add at the end" /></div>
+          <div className="ab-row">
+            <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="Full name" /></div>
+            <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")} placeholder="e.g. Project Operations & Labs" /></div>
+          </div>
           {status === "error" && <div className="ab-form-msg error">{error}</div>}
           <button className="btn primary" type="submit" disabled={status === "sending"}>
             {status === "sending" ? "Saving…" : isEdit ? "Save Changes" : "Add Member"}
@@ -245,12 +249,14 @@ export default function TeamAdmin() {
   const [pendingDelete, setPendingDelete] = useState(null); // { id, name, what }
   const [deleting, setDeleting] = useState(false);
 
+    const byOrder = (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.name).localeCompare(String(b.name));
+
   const load = () => {
     setLoading(true);
     getAdminTeam()
       .then((data) => {
-        setCoreTeam(data.filter((m) => m.section !== "committee"));
-        setCommittee(data.filter((m) => m.section === "committee"));
+        setCoreTeam(data.filter((m) => m.section !== "committee").sort(byOrder));
+        setCommittee(data.filter((m) => m.section === "committee").sort(byOrder));
       })
       .catch((err) => setError(err.message || "Could not load team members"))
       .finally(() => setLoading(false));
@@ -287,11 +293,11 @@ export default function TeamAdmin() {
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">
-            <thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Order</th><th></th></tr></thead>
+                        <thead><tr><th>Name</th><th>Role</th><th>Department</th><th></th></tr></thead>
             <tbody>
               {coreTeam.map((m) => (
                 <tr key={m._id}>
-                  <td>{m.name}</td><td className="muted">{m.role}</td><td className="muted">{m.department}</td><td className="muted">{m.order}</td>
+                  <td>{m.name}</td><td className="muted">{m.role}</td><td className="muted">{m.department}</td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <button className="adm-icon-btn" title="Edit" onClick={() => setCoreModal(m)}>✎</button>
                     <button className="adm-icon-btn danger" title="Remove"
@@ -314,11 +320,11 @@ export default function TeamAdmin() {
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">
-            <thead><tr><th>Name</th><th>Role</th><th>Order</th><th></th></tr></thead>
+                        <thead><tr><th>Name</th><th>Role</th><th></th></tr></thead>
             <tbody>
               {committee.map((m) => (
                 <tr key={m._id}>
-                  <td>{m.name}</td><td className="muted">{m.role}</td><td className="muted">{m.order}</td>
+                  <td>{m.name}</td><td className="muted">{m.role}</td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <button className="adm-icon-btn" title="Edit" onClick={() => setCommitteeModal(m)}>✎</button>
                     <button className="adm-icon-btn danger" title="Remove"

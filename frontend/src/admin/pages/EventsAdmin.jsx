@@ -154,12 +154,35 @@ function EventFormModal({ initial, onClose, onSaved }) {
   );
 }
 
+function ConfirmDeleteEventModal({ title, busy, onCancel, onConfirm }) {
+  return (
+    <div className="ab-modal-overlay" onClick={busy ? undefined : onCancel}>
+      <div className="ab-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <button type="button" className="ab-modal-close" onClick={onCancel} disabled={busy} aria-label="Close">×</button>
+        <h3>Delete event?</h3>
+        <p className="ab-modal-sub">
+          "<strong>{title}</strong>" will be permanently deleted. This can't be undone.
+        </p>
+        <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+          <button type="button" className="btn primary" style={{ flex: 1 }} disabled={busy} onClick={onConfirm}>
+            {busy ? "Deleting…" : "Delete"}
+          </button>
+          <button type="button" className="btn" style={{ flex: 1 }} disabled={busy} onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EventsAdmin() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modal, setModal] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null); // { id, title }
 
   const load = () => {
     setLoading(true);
@@ -175,6 +198,12 @@ export default function EventsAdmin() {
     try { await deleteEvent(id); load(); }
     catch (err) { setError(err.message || "Could not delete event"); }
     finally { setDeleting(null); }
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    await handleDelete(pendingDelete.id);
+    setPendingDelete(null);
   };
 
   return (
@@ -197,7 +226,7 @@ export default function EventsAdmin() {
                   <td style={{ whiteSpace: "nowrap" }}>
                     <button className="adm-icon-btn" title="Edit" onClick={() => setModal(e)}>✎</button>
                     <button className="adm-icon-btn danger" title="Delete" disabled={deleting === e._id}
-                      onClick={() => { if (window.confirm(`Delete "${e.title}"? This cannot be undone.`)) handleDelete(e._id); }}>🗑</button>
+                      onClick={() => setPendingDelete({ id: e._id, title: e.title })}>🗑</button>
                   </td>
                 </tr>
               ))}
@@ -206,6 +235,14 @@ export default function EventsAdmin() {
         </div>
       )}
       {modal && <EventFormModal initial={modal === "new" ? null : modal} onClose={() => setModal(null)} onSaved={handleSaved} />}
+      {pendingDelete && (
+        <ConfirmDeleteEventModal
+          title={pendingDelete.title}
+          busy={deleting === pendingDelete.id}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={confirmDelete}
+        />
+      )}
     </div>
   );
 }

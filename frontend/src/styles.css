@@ -296,6 +296,8 @@ nav.tabs .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
 #join .wrap{display:flex;flex-direction:column;align-items:center}
 .jlogo{width:102px;height:102px;border-radius:24px;background:#0d0b1a;border:1px solid var(--accent);display:grid;place-items:center;box-shadow:0 0 30px -6px var(--accent)}
 .jlogo .lg{width:64px;height:74px}
+.join-bg-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;pointer-events:none;opacity:.5;mix-blend-mode:screen}
+[data-theme="frost"] .join-bg-video{opacity:.65}
 .flames{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
 .flames i{position:absolute;top:250px;width:420px;height:280px;background:radial-gradient(ellipse at 50% 60%,rgba(190,150,255,.9),rgba(120,70,230,.55) 45%,transparent 72%);filter:blur(18px);opacity:.45;border-radius:60% 40% 55% 45%;animation:fl 7s ease-in-out infinite}
 .flames i:first-child{left:calc(50% - 560px);transform:rotate(-25deg)}
@@ -349,17 +351,18 @@ footer .copy{margin-top:34px;padding-top:20px;border-top:1px solid var(--border)
 
 /* ---------- membership / contact form modals (backend-connected) ---------- */
 .ab-modal-overlay{position:fixed;inset:0;z-index:9999;background:rgba(4,3,10,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;overflow-x:hidden;animation:ab-fade .2s ease}
-.ab-modal{position:relative;width:100%;max-width:460px;max-height:calc(100vh - 48px);overflow-y:auto;overflow-x:hidden;background:var(--card-solid);border:1px solid var(--border);border-radius:24px;padding:32px 30px;box-shadow:0 24px 70px rgba(0,0,0,.5),0 0 40px -12px var(--accent);color:var(--text);animation:ab-pop .22s ease;scrollbar-width:thin;scrollbar-color:var(--accent2) transparent}
-.ab-modal.wide{max-width:600px}
-.ab-modal::-webkit-scrollbar{width:6px}
-.ab-modal::-webkit-scrollbar-track{background:transparent}
-.ab-modal::-webkit-scrollbar-thumb{background:var(--accent2);border-radius:999px}
-.ab-modal::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+.ab-modal{position:relative;width:100%;max-width:460px;max-height:calc(100vh - 48px);overflow-y:auto;overflow-x:hidden;background:var(--card-solid);border:1px solid var(--border);border-radius:24px;padding:32px 30px;box-shadow:0 24px 70px rgba(0,0,0,.5),0 0 40px -12px var(--accent);color:var(--text);animation:ab-pop .22s ease;scrollbar-width:none}
+.ab-modal.wide{max-width:640px}
+/* Scrolling stays available as a safety net on very small screens, but the
+   scrollbar track/thumb ("slider") itself is hidden — the wide, grid-based
+   form layout below is what keeps content from needing to scroll at all. */
+.ab-modal::-webkit-scrollbar{width:0;height:0;display:none}
 .ab-modal-sub{margin-top:8px;font-size:14.5px;color:var(--muted);line-height:1.5}
 .ab-modal-close{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:20px;line-height:1;display:grid;place-items:center;transition:.2s}
 .ab-modal-close:hover{border-color:var(--accent);color:var(--accent)}
 .ab-form{margin-top:22px;display:flex;flex-direction:column;gap:16px}
 .ab-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ab-row.cols-3{grid-template-columns:1fr 1fr 1fr}
 .ab-field{display:flex;flex-direction:column;gap:7px}
 .ab-field label{font-size:13px;font-weight:500;color:var(--muted)}
 .ab-field input,.ab-field textarea,.ab-field select{font-family:var(--sans);font-size:15px;color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 14px;resize:vertical;transition:.2s}
@@ -372,13 +375,19 @@ footer .copy{margin-top:34px;padding-top:20px;border-top:1px solid var(--border)
 .ab-form-msg{font-size:13.5px;border-radius:10px;padding:10px 14px}
 .ab-form-msg.error{background:color-mix(in srgb,#f04438 16%,transparent);color:#ff9c93;border:1px solid color-mix(in srgb,#f04438 40%,transparent)}
 .ab-image-upload{display:flex;flex-direction:column;gap:10px}
-.ab-image-preview{width:120px;height:120px;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--card);cursor:pointer;transition:.2s}
+.ab-image-preview{width:120px;height:120px;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--card);cursor:pointer;transition:.2s;flex-shrink:0}
 .ab-image-preview:hover{border-color:var(--accent)}
 .ab-image-preview img{width:100%;height:100%;object-fit:cover;display:block}
 .ab-image-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted);font-size:12px}
 .ab-image-placeholder-icon{font-size:26px;opacity:.7}
 .ab-image-actions{display:flex;gap:10px;flex-wrap:wrap}
 .ab-image-hint{color:var(--muted);font-size:12px}
+/* Compact, side-by-side variant used inside a wide/horizontal form row so the
+   photo field doesn't force the whole modal taller than it needs to be. */
+.ab-image-upload.row{flex-direction:row;align-items:flex-start;flex-wrap:wrap}
+.ab-image-upload.row .ab-image-preview{width:64px;height:64px}
+.ab-image-upload.row .ab-image-actions{flex-direction:column;align-self:center}
+.ab-image-upload.row .ab-image-hint{flex-basis:100%}
 .ab-success{font-size:15.5px;line-height:1.6;color:color-mix(in srgb,var(--text) 88%,transparent);margin:18px 0 22px}
 .ab-form .btn{width:100%;justify-content:center;cursor:pointer}
 .ab-form .btn:disabled{opacity:.65;cursor:default;transform:none}
@@ -394,10 +403,43 @@ footer .copy{margin-top:34px;padding-top:20px;border-top:1px solid var(--border)
 .ph-add-btn:disabled{opacity:.6;cursor:default}
 @keyframes ab-fade{from{opacity:0}to{opacity:1}}
 @keyframes ab-pop{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:none}}
-@media(max-width:520px){.ab-row{grid-template-columns:1fr}.ab-modal{padding:26px 20px}.ab-modal.wide{max-width:460px}}
+@media(max-width:520px){.ab-row,.ab-row.cols-3{grid-template-columns:1fr}.ab-modal{padding:26px 20px}.ab-modal.wide{max-width:460px}.ab-image-upload.row{flex-direction:column}.ab-image-upload.row .ab-image-actions{flex-direction:row;align-self:stretch}}
 /* ---------- intro splash: looping video ---------- */
 .intro.intro-video{background:#000;cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none}
 .intro-video-el{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;user-select:none}
 @media (max-width:700px){.intro-video-el{object-fit:cover}}
+.tap-continue{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  z-index:2;
+  pointer-events:none;
+  padding:16px 42px;
+  border-radius:999px;
+  background:linear-gradient(180deg, rgba(50,30,95,.55), rgba(8,4,22,.8));
+  border:1px solid rgba(140,210,255,.6);
+  box-shadow:0 0 14px rgba(90,200,255,.55), 0 0 34px rgba(139,92,246,.4), inset 0 0 14px rgba(90,200,255,.18);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  animation:tap-pulse 1.8s ease-in-out infinite;
+}
+.tap-continue span{
+  font-family:var(--disp);
+  font-weight:700;
+  font-size:clamp(13px,2.4vw,17px);
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:#eafcff;
+  text-shadow:0 0 8px rgba(160,225,255,.95), 0 0 20px rgba(139,92,246,.65);
+  white-space:nowrap;
+}
+@keyframes tap-pulse{
+  0%,100%{box-shadow:0 0 14px rgba(90,200,255,.5), 0 0 30px rgba(139,92,246,.35), inset 0 0 14px rgba(90,200,255,.15);}
+  50%{box-shadow:0 0 22px rgba(90,200,255,.9), 0 0 46px rgba(139,92,246,.6), inset 0 0 18px rgba(90,200,255,.28);}
+}
+@media (max-width:480px){
+  .tap-continue{padding:13px 30px;}
+}
 /* cursor ball + trail must draw above the intro video (intro is z-index 900) */
 html.intro-on canvas#trail{z-index:1000}

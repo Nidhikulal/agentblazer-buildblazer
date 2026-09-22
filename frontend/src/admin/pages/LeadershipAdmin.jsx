@@ -50,7 +50,7 @@ function readAndResizeImage(file) {
 
 // Reusable "upload one photo from your device" field with a live preview
 // and a placeholder shown whenever there's no photo yet.
-function ImageUploadField({ value, onChange, name }) {
+function ImageUploadField({ value, onChange, name, compact }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -79,7 +79,7 @@ function ImageUploadField({ value, onChange, name }) {
   };
 
   return (
-    <div className="ab-image-upload">
+    <div className={compact ? "ab-image-upload row" : "ab-image-upload"}>
       <div
         className="ab-image-preview"
         onClick={pick}
@@ -139,12 +139,14 @@ function GuestFormModal({ initial, onClose, onSaved }) {
 
   return (
     <div className="ab-modal-overlay" onClick={onClose}>
-      <div className="ab-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="ab-modal wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <button type="button" className="ab-modal-close" onClick={onClose} aria-label="Close">×</button>
         <h3>{isEdit ? "Edit Guest" : "Add Guest"}</h3>
         <form className="ab-form" onSubmit={submit}>
-          <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="e.g. Mr. Santosh Rebello" /></div>
-          <div className="ab-field"><label>Organization *</label><input required value={form.org} onChange={update("org")} placeholder="e.g. Salesforce" /></div>
+          <div className="ab-row">
+            <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="e.g. Mr. Santosh Rebello" /></div>
+            <div className="ab-field"><label>Organization *</label><input required value={form.org} onChange={update("org")} placeholder="e.g. Salesforce" /></div>
+          </div>
           <div className="ab-row">
             <div className="ab-field"><label>Left Tag *</label><input required value={form.label} onChange={update("label")} placeholder="e.g. Guest of Honor" /></div>
             <div className="ab-field"><label>Right Tag *</label><input required value={form.highlight} onChange={update("highlight")} placeholder="e.g. Keynote Speaker" /></div>
@@ -166,7 +168,6 @@ function GuestFormModal({ initial, onClose, onSaved }) {
               </select>
             </div>
           </div>
-          <div className="ab-field"><label>Position (1 = first)</label><input type="number" min="1" value={form.order} onChange={update("order")} placeholder="Leave blank to add at the end" /></div>
           {status === "error" && <div className="ab-form-msg error">{error}</div>}
           <button className="btn primary" type="submit" disabled={status === "sending"}>
             {status === "sending" ? "Saving…" : isEdit ? "Save Changes" : "Add Member"}
@@ -217,18 +218,21 @@ function FacultyFormModal({ initial, onClose, onSaved }) {
 
   return (
     <div className="ab-modal-overlay" onClick={onClose}>
-      <div className="ab-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="ab-modal wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <button type="button" className="ab-modal-close" onClick={onClose} aria-label="Close">×</button>
         <h3>{isEdit ? "Edit Faculty Member" : "Add Faculty Member"}</h3>
         <form className="ab-form" onSubmit={submit}>
-          <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="e.g. Ms. Nisha Roche" /></div>
-          <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")} placeholder="e.g. Assistant Professor, CSE • Faculty Coordinator" /></div>
-                    <div className="ab-field">
-            <label>Photo</label>
-            <ImageUploadField value={form.photo} name={form.name} onChange={(dataUrl) => setForm((f) => ({ ...f, photo: dataUrl }))} />
+          <div className="ab-row">
+            <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="e.g. Ms. Nisha Roche" /></div>
+            <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")} placeholder="e.g. Assistant Professor, CSE • Faculty Coordinator" /></div>
           </div>
           <div className="ab-field"><label>Short Bio (shown on hover)</label><input value={form.bio} onChange={update("bio")} placeholder="Optional, e.g. Faculty Coordinator • AgentBlazer Club" /></div>
-          <div className="ab-field"><label>Position (1 = first)</label><input type="number" min="1" value={form.order} onChange={update("order")} placeholder="Leave blank to add at the end" /></div>
+          <div className="ab-row">
+            <div className="ab-field">
+              <label>Photo</label>
+              <ImageUploadField compact value={form.photo} name={form.name} onChange={(dataUrl) => setForm((f) => ({ ...f, photo: dataUrl }))} />
+            </div>
+          </div>
           {status === "error" && <div className="ab-form-msg error">{error}</div>}
           <button className="btn primary" type="submit" disabled={status === "sending"}>
             {status === "sending" ? "Saving…" : isEdit ? "Save Changes" : "Add Member"}
