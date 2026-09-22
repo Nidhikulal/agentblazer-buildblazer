@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import introVideo from "./assets/intro.mp4";
-import { PHOTOS, GUESTS, FACULTY, COMMITTEE, FALLBACK_EVENTS, FALLBACK_TEAM, NAV } from "./data.js";
+import { PHOTOS, GUESTS, FACULTY, COMMITTEE, FALLBACK_EVENTS, FALLBACK_TEAM, NAV, CORE_TEAM_PHOTO_KEYS } from "./data.js";
 import {
   getEvents,
   getTeam,
   getSettings,
+  getLeadership,
   submitMembership,
   submitContact,
   requestMembershipOtp,
@@ -46,19 +47,10 @@ function mergeSettings(data) {
 
 /* ---------- map backend data shapes to the shapes this UI expects ---------- */
 const EVENT_TAG_COLORS = ["c1", "c2", "c3", "c4"];
-
-const CORE_TEAM_PHOTOS = {
-  "ruben saldanha": "ruben",
-  "ajay preenal dsouza": "ajay",
-  "stevin dsouza": "stevin",
-  "frenny chrystal saldanha": "frenny",
-  "joyline galbao": "joyline",
-  "chinthan n v": "chinthan"
-};
-
 function teamPhotoFor(name) {
-  return CORE_TEAM_PHOTOS[(name || "").trim().toLowerCase()];
+  return CORE_TEAM_PHOTO_KEYS[(name || "").trim().toLowerCase()];
 }
+
 
 function initialsFor(name) {
   return (name || "Team Member")
@@ -125,6 +117,44 @@ function mapBackendMember(m) {
   };
 }
 
+function mapBackendCommittee(m) {
+  return {
+    ini: initialsFor(m.name),
+    name: m.name,
+    role: m.role
+  };
+}
+
+function mapBackendGuest(g) {
+  return {
+    ini: initialsFor(g.name),
+    name: g.name,
+    org: g.org,
+    l: g.label,
+    r: g.highlight,
+    rc: g.highlightColor || "c-gold",
+    ac: g.accentColor || "c-cy"
+  };
+}
+
+function mapBackendFaculty(f) {
+  return {
+    ini: initialsFor(f.name),
+    photo: f.photo || "",
+    hue: 260,
+    name: f.name,
+    role: f.role,
+    pop: f.bio && f.bio.trim() ? f.bio : `${f.role} • AgentBlazer Club`
+  };
+}
+
+// A "photo" value is either a known static image key (from data.js fallbacks)
+// or an actual usable image (a base64 data URL from the admin upload). Try the
+// static lookup first, and fall back to using the value directly.
+function resolvePhoto(photo) {
+  if (!photo) return undefined;
+  return PHOTOS[photo] || photo;
+}
 /* ---------- placeholder image helpers ---------- */
 const avatar = (ini, hue, w = 290, h = 360) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},45%,32%)"/><stop offset="1" stop-color="hsl(${hue + 50},50%,14%)"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/><circle cx="${w / 2}" cy="${h * 0.4}" r="${h * 0.14}" fill="rgba(255,255,255,.22)"/><ellipse cx="${w / 2}" cy="${h * 0.85}" rx="${w * 0.3}" ry="${h * 0.24}" fill="rgba(255,255,255,.22)"/><text x="50%" y="${h * 0.42}" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="${h * 0.12}" font-weight="700" fill="#fff">${ini}</text></svg>`;
@@ -376,9 +406,9 @@ function Popover({ hover }) {
       {h && h.kind === "person" && (
         <>
           <div className="ph">
-            <img
+                      <img
   alt={h.data.name}
-  src={h.data.image || PHOTOS[h.data.photo] || avatar(h.data.ini, h.data.hue)}
+  src={h.data.image || resolvePhoto(h.data.photo) || avatar(h.data.ini, h.data.hue)}
   onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = avatar(h.data.ini, h.data.hue); }}
 />
             <span className="tag">LEADERSHIP</span><span className="sj">SJEC CSE</span>
@@ -494,17 +524,38 @@ function Home({ go, settings }) {
 
 function About({ hover, setHover, settings }) {
   const [team, setTeam] = useState(FALLBACK_TEAM);
+  const [committee, setCommittee] = useState(COMMITTEE);
+  const [guests, setGuests] = useState(GUESTS);
+  const [faculty, setFaculty] = useState(FACULTY);
 
   useEffect(() => {
     let alive = true;
     getTeam()
       .then((data) => {
         if (!alive) return;
-        if (Array.isArray(data) && data.length > 0) setTeam(data.map(mapBackendMember));
+        if (!Array.isArray(data) || data.length === 0) return;
+        const core = data.filter((m) => m.section !== "committee").map(mapBackendMember);
+        const comm = data.filter((m) => m.section === "committee").map(mapBackendCommittee);
+        if (core.length > 0) setTeam(core);
+        if (comm.length > 0) setCommittee(comm);
       })
       .catch((err) => {
         console.warn("Could not load team from backend, showing fallback data:", err.message);
       });
+
+    getLeadership()
+      .then((data) => {
+        if (!alive) return;
+        if (!Array.isArray(data) || data.length === 0) return;
+        const g = data.filter((m) => m.kind === "guest").map(mapBackendGuest);
+        const f = data.filter((m) => m.kind === "faculty").map(mapBackendFaculty);
+        if (g.length > 0) setGuests(g);
+        if (f.length > 0) setFaculty(f);
+      })
+      .catch((err) => {
+        console.warn("Could not load leadership from backend, showing fallback data:", err.message);
+      });
+
     return () => {
       alive = false;
     };
@@ -535,7 +586,7 @@ function About({ hover, setHover, settings }) {
 
         <h3 className="sec-title">Honored Guests <span className="ital">&amp; College Leadership</span></h3>
         <div className="guests">
-          {GUESTS.map((g) => (
+                    {guests.map((g) => (
             <div
               className={`g ${hover && hover.id === g.ini ? "hl" : ""}`}
               key={g.ini}
@@ -554,15 +605,15 @@ function About({ hover, setHover, settings }) {
         <div className="faculty">
           <h4>Faculty Advisory Council</h4>
           <div className="fgrid">
-            {FACULTY.map((f) => (
+                        {faculty.map((f) => (
               <div
                 className={`f ${hover && hover.id === f.ini ? "hl" : ""}`}
                 key={f.ini}
                 onMouseEnter={(e) => setHover({ id: f.ini, kind: "person", data: f, rect: e.currentTarget.getBoundingClientRect() })}
                 onMouseLeave={() => setHover(null)}
               >
-                <div className={`av ${f.photo ? "has-photo" : "c-cy"}`}>
-                  {f.photo ? <img src={PHOTOS[f.photo]} alt={f.name} /> : f.ini}
+                 <div className={`av ${f.photo ? "has-photo" : "c-cy"}`}>
+                  {f.photo ? <img src={resolvePhoto(f.photo)} alt={f.name} /> : f.ini}
                 </div>
                 <div><h5>{f.name}</h5><small>{f.role}</small></div>
               </div>
@@ -590,7 +641,7 @@ function About({ hover, setHover, settings }) {
         <div className="cwc">
           <div className="hd"><b>Core Working Committee</b><span>Departmental Representatives</span></div>
           <div className="cgrid">
-            {COMMITTEE.map((c) => (
+                        {committee.map((c) => (
               <div className="f" key={c.ini}>
                 <div className="av">{c.ini}</div>
                 <div><h5>{c.name}</h5><small>{c.role}</small></div>

@@ -73,6 +73,9 @@ html.adm-custom-cursor,html.adm-custom-cursor *{cursor:none!important}
 .adm-btn-sm:hover{border-color:var(--accent);color:var(--accent)}
 .adm-btn-sm.primary{background:var(--btn);border:none;color:#fff}
 .adm-btn-sm.primary:hover{opacity:.9;color:#fff}
+.adm-btn-sm.danger{color:#ff9c93;border-color:color-mix(in srgb,#f04438 45%,transparent)}
+.adm-btn-sm.danger:hover{background:color-mix(in srgb,#f04438 16%,transparent);border-color:#f04438;color:#ff9c93}
+.adm-btn-sm:disabled{opacity:.6;cursor:default}
 .adm-select{font-family:var(--sans);font-size:13px;color:var(--text);background:var(--card-solid);border:1px solid var(--border);border-radius:9px;padding:6px 10px}
 .adm-empty{color:var(--muted);font-size:14px;padding:24px 0;text-align:center}
 .adm-loading{color:var(--muted);font-size:14px;padding:24px 0;text-align:center}

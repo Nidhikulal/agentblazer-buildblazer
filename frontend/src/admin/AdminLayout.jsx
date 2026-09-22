@@ -7,7 +7,8 @@ import logoImg from "../assets/logo.png";
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
   { id: "events", label: "Events" },
-  { id: "team", label: "Team Members"  },
+  { id: "team", label: "Team Members" },
+  { id: "leadership", label: "Leadership" },
   { id: "applications", label: "Membership Applications" },
   { id: "settings", label: "Site Settings" }
 ];

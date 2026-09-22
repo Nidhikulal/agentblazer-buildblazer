@@ -56,6 +56,10 @@ export const getAdminTeam = () => request("/team");
 export const createTeamMember = (payload) => request("/team", { method: "POST", body: JSON.stringify(payload) });
 export const updateTeamMember = (id, payload) => request(`/team/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 export const deleteTeamMember = (id) => request(`/team/${id}`, { method: "DELETE" });
+export const getAdminLeadership = () => request("/leadership");
+export const createLeadershipMember = (payload) => request("/leadership", { method: "POST", body: JSON.stringify(payload) });
+export const updateLeadershipMember = (id, payload) => request(`/leadership/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const deleteLeadershipMember = (id) => request(`/leadership/${id}`, { method: "DELETE" });
 
 export const getApplications = () => request("/members");
 // Record the result of a recruitment round ("aptitude" | "interview") as

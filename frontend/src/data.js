@@ -45,6 +45,14 @@ export const PHOTOS = {
   keith: keithPhoto,
 };
 
+export const CORE_TEAM_PHOTO_KEYS = {
+  "ruben saldanha": "ruben",
+  "ajay preenal dsouza": "ajay",
+  "stevin dsouza": "stevin",
+  "frenny chrystal saldanha": "frenny",
+  "joyline galbao": "joyline",
+  "chinthan n v": "chinthan",
+};
 /* ---------- data ---------- */
 export const GUESTS = [
   { ini: "SR", name: "Mr. Santosh Rebello", org: "Salesforce", l: "Guest of Honor", r: "Keynote Speaker", rc: "c-gold", ac: "c-cy" },

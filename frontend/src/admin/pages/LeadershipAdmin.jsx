@@ -1,20 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { getAdminTeam, createTeamMember, updateTeamMember, deleteTeamMember } from "../adminApi.js";
-import { PHOTOS, CORE_TEAM_PHOTO_KEYS } from "../../data.js";
-const EMPTY_CORE_FORM = { name: "", role: "", category: "", department: "", description: "", image: "", order: "", section: "core" };
-const EMPTY_COMMITTEE_FORM = { name: "", role: "", order: "", section: "committee" };
+import { getAdminLeadership, createLeadershipMember, updateLeadershipMember, deleteLeadershipMember } from "../adminApi.js";
 
-function staticPhotoFor(name) {
-  const key = CORE_TEAM_PHOTO_KEYS[(name || "").trim().toLowerCase()];
-  return key ? PHOTOS[key] : "";
-}
+const EMPTY_GUEST_FORM = { name: "", org: "", label: "", highlight: "", highlightColor: "c-gold", accentColor: "c-cy", order: "", kind: "guest" };
+const EMPTY_FACULTY_FORM = { name: "", role: "", bio: "", photo: "", order: "", kind: "faculty" };
+
 // ---------- single-photo upload (from the device's own gallery/files) ----------
-// The photo never leaves the browser as a raw file — it's downscaled on a
-// <canvas> and turned into a base64 data URL, which is exactly what the
-// `image` field already stores (same approach the event gallery uploader uses).
-const MAX_IMAGE_DIMENSION = 480; // longest side, in px, after resizing
-const IMAGE_QUALITY = 0.85; // JPEG quality
-const MAX_ORIGINAL_FILE_MB = 8; // reject anything absurdly large before we even try to read it
+// Matches the pattern used for event photos and team member photos: downscale
+// on a <canvas> and store as a base64 data URL in the `photo` field.
+const MAX_IMAGE_DIMENSION = 480;
+const IMAGE_QUALITY = 0.85;
+const MAX_ORIGINAL_FILE_MB = 8;
 
 function readAndResizeImage(file) {
   return new Promise((resolve, reject) => {
@@ -55,17 +50,16 @@ function readAndResizeImage(file) {
 
 // Reusable "upload one photo from your device" field with a live preview
 // and a placeholder shown whenever there's no photo yet.
-function ImageUploadField({ value, onChange, name, fallbackSrc }) {
+function ImageUploadField({ value, onChange, name }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const pick = () => inputRef.current && inputRef.current.click();
-    const displaySrc = value || fallbackSrc;
 
   const handleFile = async (e) => {
     const file = e.target.files && e.target.files[0];
-    e.target.value = ""; // reset so choosing the same file again still fires onChange
+    e.target.value = "";
     if (!file) return;
     setError("");
     setBusy(true);
@@ -94,8 +88,8 @@ function ImageUploadField({ value, onChange, name, fallbackSrc }) {
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && pick()}
         aria-label={value ? "Change photo" : "Upload photo"}
       >
-                {displaySrc ? (
-          <img src={displaySrc} alt={name || "Preview"} />
+        {value ? (
+          <img src={value} alt={name || "Preview"} />
         ) : (
           <div className="ab-image-placeholder">
             <span className="ab-image-placeholder-icon" aria-hidden="true">🖼️</span>
@@ -106,7 +100,7 @@ function ImageUploadField({ value, onChange, name, fallbackSrc }) {
       <div className="ab-image-actions">
         <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
         <button type="button" className="adm-btn-sm" onClick={pick} disabled={busy}>
-          {busy ? "Processing…" : value ? "Change Photo" : fallbackSrc ? "Replace Photo" : "Upload Photo"}
+          {busy ? "Processing…" : value ? "Change Photo" : "Upload Photo"}
         </button>
         {value && (
           <button type="button" className="adm-btn-sm danger" onClick={remove} disabled={busy}>
@@ -120,9 +114,9 @@ function ImageUploadField({ value, onChange, name, fallbackSrc }) {
   );
 }
 
-function CoreMemberFormModal({ initial, onClose, onSaved }) {
+function GuestFormModal({ initial, onClose, onSaved }) {
   const isEdit = Boolean(initial);
-  const [form, setForm] = useState(initial ? { ...EMPTY_CORE_FORM, ...initial } : EMPTY_CORE_FORM);
+  const [form, setForm] = useState(initial ? { ...EMPTY_GUEST_FORM, ...initial } : EMPTY_GUEST_FORM);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
@@ -133,12 +127,12 @@ function CoreMemberFormModal({ initial, onClose, onSaved }) {
     setStatus("sending");
     setError("");
     try {
-      const payload = { ...form, section: "core", order: form.order ? Number(form.order) : undefined };
-      if (isEdit) await updateTeamMember(initial._id, payload);
-      else await createTeamMember(payload);
+      const payload = { ...form, kind: "guest", order: form.order ? Number(form.order) : undefined };
+      if (isEdit) await updateLeadershipMember(initial._id, payload);
+      else await createLeadershipMember(payload);
       onSaved();
     } catch (err) {
-      setError(err.message || "Could not save team member.");
+      setError(err.message || "Could not save guest.");
       setStatus("error");
     }
   };
@@ -147,18 +141,30 @@ function CoreMemberFormModal({ initial, onClose, onSaved }) {
     <div className="ab-modal-overlay" onClick={onClose}>
       <div className="ab-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <button type="button" className="ab-modal-close" onClick={onClose} aria-label="Close">×</button>
-        <h3>{isEdit ? "Edit Team Member" : "Add Team Member"}</h3>
+        <h3>{isEdit ? "Edit Guest" : "Add Guest"}</h3>
         <form className="ab-form" onSubmit={submit}>
-          <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="Full name" /></div>
+          <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="e.g. Mr. Santosh Rebello" /></div>
+          <div className="ab-field"><label>Organization *</label><input required value={form.org} onChange={update("org")} placeholder="e.g. Salesforce" /></div>
           <div className="ab-row">
-            <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")} placeholder="e.g. Tech Lead" /></div>
-            <div className="ab-field"><label>Category</label><input value={form.category} onChange={update("category")} placeholder="e.g. Tech Lead" /></div>
+            <div className="ab-field"><label>Left Tag *</label><input required value={form.label} onChange={update("label")} placeholder="e.g. Guest of Honor" /></div>
+            <div className="ab-field"><label>Right Tag *</label><input required value={form.highlight} onChange={update("highlight")} placeholder="e.g. Keynote Speaker" /></div>
           </div>
-          <div className="ab-field"><label>Department / Focus Area</label><input value={form.department} onChange={update("department")} placeholder="e.g. Technical Direction" /></div>
-                    <div className="ab-field"><label>Description</label><textarea rows={3} value={form.description} onChange={update("description")} placeholder="What do they do for the club?" /></div>
-          <div className="ab-field">
-            <label>Photo</label>
-            <ImageUploadField value={form.image} name={form.name} onChange={(dataUrl) => setForm((f) => ({ ...f, image: dataUrl }))} />
+          <div className="ab-row">
+            <div className="ab-field">
+              <label>Right Tag Color</label>
+              <select value={form.highlightColor} onChange={update("highlightColor")}>
+                <option value="c-gold">Gold</option>
+                <option value="c-cy">Cyan</option>
+                <option value="c-pu">Purple</option>
+              </select>
+            </div>
+            <div className="ab-field">
+              <label>Avatar Accent</label>
+              <select value={form.accentColor} onChange={update("accentColor")}>
+                <option value="c-cy">Cyan</option>
+                <option value="p">Purple</option>
+              </select>
+            </div>
           </div>
           <div className="ab-field"><label>Position (1 = first)</label><input type="number" min="1" value={form.order} onChange={update("order")} placeholder="Leave blank to add at the end" /></div>
           {status === "error" && <div className="ab-form-msg error">{error}</div>}
@@ -171,25 +177,40 @@ function CoreMemberFormModal({ initial, onClose, onSaved }) {
   );
 }
 
-function CommitteeFormModal({ initial, onClose, onSaved }) {
+function FacultyFormModal({ initial, onClose, onSaved }) {
   const isEdit = Boolean(initial);
-  const [form, setForm] = useState(initial ? { ...EMPTY_COMMITTEE_FORM, ...initial } : EMPTY_COMMITTEE_FORM);
+  const [form, setForm] = useState(initial ? { ...EMPTY_FACULTY_FORM, ...initial } : EMPTY_FACULTY_FORM);
+  const [preview, setPreview] = useState(initial?.photo || "");
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
   const update = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const onFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("Please choose an image file."); return; }
+    if (file.size > 1.5 * 1024 * 1024) { setError("Please choose an image under 1.5MB."); return; }
+    setError("");
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((f) => ({ ...f, photo: reader.result }));
+      setPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     setStatus("sending");
     setError("");
     try {
-      const payload = { name: form.name, role: form.role, section: "committee", order: form.order ? Number(form.order) : undefined };
-      if (isEdit) await updateTeamMember(initial._id, payload);
-      else await createTeamMember(payload);
+      const payload = { ...form, kind: "faculty", order: form.order ? Number(form.order) : undefined };
+      if (isEdit) await updateLeadershipMember(initial._id, payload);
+      else await createLeadershipMember(payload);
       onSaved();
     } catch (err) {
-      setError(err.message || "Could not save committee member.");
+      setError(err.message || "Could not save faculty member.");
       setStatus("error");
     }
   };
@@ -198,10 +219,15 @@ function CommitteeFormModal({ initial, onClose, onSaved }) {
     <div className="ab-modal-overlay" onClick={onClose}>
       <div className="ab-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <button type="button" className="ab-modal-close" onClick={onClose} aria-label="Close">×</button>
-        <h3>{isEdit ? "Edit Committee Member" : "Add Committee Member"}</h3>
+        <h3>{isEdit ? "Edit Faculty Member" : "Add Faculty Member"}</h3>
         <form className="ab-form" onSubmit={submit}>
-          <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="Full name" /></div>
-          <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")} placeholder="e.g. Project Operations & Labs" /></div>
+          <div className="ab-field"><label>Name *</label><input required value={form.name} onChange={update("name")} placeholder="e.g. Ms. Nisha Roche" /></div>
+          <div className="ab-field"><label>Role *</label><input required value={form.role} onChange={update("role")} placeholder="e.g. Assistant Professor, CSE • Faculty Coordinator" /></div>
+                    <div className="ab-field">
+            <label>Photo</label>
+            <ImageUploadField value={form.photo} name={form.name} onChange={(dataUrl) => setForm((f) => ({ ...f, photo: dataUrl }))} />
+          </div>
+          <div className="ab-field"><label>Short Bio (shown on hover)</label><input value={form.bio} onChange={update("bio")} placeholder="Optional, e.g. Faculty Coordinator • AgentBlazer Club" /></div>
           <div className="ab-field"><label>Position (1 = first)</label><input type="number" min="1" value={form.order} onChange={update("order")} placeholder="Leave blank to add at the end" /></div>
           {status === "error" && <div className="ab-form-msg error">{error}</div>}
           <button className="btn primary" type="submit" disabled={status === "sending"}>
@@ -235,24 +261,24 @@ function ConfirmDeleteModal({ name, busy, onCancel, onConfirm }) {
   );
 }
 
-export default function TeamAdmin() {
-  const [coreTeam, setCoreTeam] = useState([]);
-  const [committee, setCommittee] = useState([]);
+export default function LeadershipAdmin() {
+  const [guests, setGuests] = useState([]);
+  const [faculty, setFaculty] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [coreModal, setCoreModal] = useState(null);
-  const [committeeModal, setCommitteeModal] = useState(null);
-  const [pendingDelete, setPendingDelete] = useState(null); // { id, name, what }
+  const [guestModal, setGuestModal] = useState(null);
+  const [facultyModal, setFacultyModal] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null); // { id, name }
   const [deleting, setDeleting] = useState(false);
 
   const load = () => {
     setLoading(true);
-    getAdminTeam()
+    getAdminLeadership()
       .then((data) => {
-        setCoreTeam(data.filter((m) => m.section !== "committee"));
-        setCommittee(data.filter((m) => m.section === "committee"));
+        setGuests(data.filter((m) => m.kind === "guest"));
+        setFaculty(data.filter((m) => m.kind === "faculty"));
       })
-      .catch((err) => setError(err.message || "Could not load team members"))
+      .catch((err) => setError(err.message || "Could not load leadership"))
       .finally(() => setLoading(false));
   };
 
@@ -262,11 +288,11 @@ export default function TeamAdmin() {
     if (!pendingDelete) return;
     setDeleting(true);
     try {
-      await deleteTeamMember(pendingDelete.id);
+      await deleteLeadershipMember(pendingDelete.id);
       setPendingDelete(null);
       load();
     } catch (err) {
-      setError(err.message || `Could not remove ${pendingDelete.what}`);
+      setError(err.message || "Could not remove member");
       setPendingDelete(null);
     } finally {
       setDeleting(false);
@@ -277,25 +303,28 @@ export default function TeamAdmin() {
     <div className="adm-section">
       {error && <div className="ab-form-msg error" style={{ marginBottom: 14 }}>{error}</div>}
 
-      {/* ---------- Student Core Team ---------- */}
+      {/* ---------- Honored Guests & College Leadership ---------- */}
       <div className="row-head">
-        <h2>Student Core Team ({coreTeam.length})</h2>
-        <button className="adm-btn-sm primary" onClick={() => setCoreModal("new")}>+ Add Member</button>
+        <h2>Honored Guests &amp; College Leadership ({guests.length})</h2>
+        <button className="adm-btn-sm primary" onClick={() => setGuestModal("new")}>+ Add Member</button>
       </div>
-      {loading ? <div className="adm-loading">Loading…</div> : coreTeam.length === 0 ? (
-        <div className="adm-empty">No team members yet. Click "Add Member" to create one.</div>
+      {loading ? <div className="adm-loading">Loading…</div> : guests.length === 0 ? (
+        <div className="adm-empty">No guests yet. Click "Add Member" to create one.</div>
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">
-            <thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Order</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Organization</th><th>Tags</th><th>Order</th><th></th></tr></thead>
             <tbody>
-              {coreTeam.map((m) => (
-                <tr key={m._id}>
-                  <td>{m.name}</td><td className="muted">{m.role}</td><td className="muted">{m.department}</td><td className="muted">{m.order}</td>
+              {guests.map((g) => (
+                <tr key={g._id}>
+                  <td>{g.name}</td>
+                  <td className="muted">{g.org}</td>
+                  <td className="muted">{g.label} / {g.highlight}</td>
+                  <td className="muted">{g.order}</td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <button className="adm-icon-btn" title="Edit" onClick={() => setCoreModal(m)}>✎</button>
+                    <button className="adm-icon-btn" title="Edit" onClick={() => setGuestModal(g)}>✎</button>
                     <button className="adm-icon-btn danger" title="Remove"
-                      onClick={() => setPendingDelete({ id: m._id, name: m.name, what: "member" })}>🗑</button>
+                      onClick={() => setPendingDelete({ id: g._id, name: g.name })}>🗑</button>
                   </td>
                 </tr>
               ))}
@@ -304,25 +333,34 @@ export default function TeamAdmin() {
         </div>
       )}
 
-      {/* ---------- Core Working Committee ---------- */}
+      {/* ---------- Faculty Advisory Council ---------- */}
       <div className="row-head" style={{ marginTop: 32 }}>
-        <h2>Core Working Committee ({committee.length})</h2>
-        <button className="adm-btn-sm primary" onClick={() => setCommitteeModal("new")}>+ Add Member</button>
+        <h2>Faculty Advisory Council ({faculty.length})</h2>
+        <button className="adm-btn-sm primary" onClick={() => setFacultyModal("new")}>+ Add Member</button>
       </div>
-      {loading ? <div className="adm-loading">Loading…</div> : committee.length === 0 ? (
-        <div className="adm-empty">No committee members yet. Click "Add Member" to create one.</div>
+      {loading ? <div className="adm-loading">Loading…</div> : faculty.length === 0 ? (
+        <div className="adm-empty">No faculty members yet. Click "Add Member" to create one.</div>
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">
-            <thead><tr><th>Name</th><th>Role</th><th>Order</th><th></th></tr></thead>
+            <thead><tr><th>Photo</th><th>Name</th><th>Role</th><th>Order</th><th></th></tr></thead>
             <tbody>
-              {committee.map((m) => (
-                <tr key={m._id}>
-                  <td>{m.name}</td><td className="muted">{m.role}</td><td className="muted">{m.order}</td>
+              {faculty.map((f) => (
+                <tr key={f._id}>
+                  <td>
+                    {f.photo ? (
+                      <img src={f.photo} alt={f.name} style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover" }} />
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
+                  </td>
+                  <td>{f.name}</td>
+                  <td className="muted">{f.role}</td>
+                  <td className="muted">{f.order}</td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <button className="adm-icon-btn" title="Edit" onClick={() => setCommitteeModal(m)}>✎</button>
+                    <button className="adm-icon-btn" title="Edit" onClick={() => setFacultyModal(f)}>✎</button>
                     <button className="adm-icon-btn danger" title="Remove"
-                      onClick={() => setPendingDelete({ id: m._id, name: m.name, what: "committee member" })}>🗑</button>
+                      onClick={() => setPendingDelete({ id: f._id, name: f.name })}>🗑</button>
                   </td>
                 </tr>
               ))}
@@ -331,18 +369,18 @@ export default function TeamAdmin() {
         </div>
       )}
 
-      {coreModal && (
-        <CoreMemberFormModal
-          initial={coreModal === "new" ? null : coreModal}
-          onClose={() => setCoreModal(null)}
-          onSaved={() => { setCoreModal(null); load(); }}
+      {guestModal && (
+        <GuestFormModal
+          initial={guestModal === "new" ? null : guestModal}
+          onClose={() => setGuestModal(null)}
+          onSaved={() => { setGuestModal(null); load(); }}
         />
       )}
-      {committeeModal && (
-        <CommitteeFormModal
-          initial={committeeModal === "new" ? null : committeeModal}
-          onClose={() => setCommitteeModal(null)}
-          onSaved={() => { setCommitteeModal(null); load(); }}
+      {facultyModal && (
+        <FacultyFormModal
+          initial={facultyModal === "new" ? null : facultyModal}
+          onClose={() => setFacultyModal(null)}
+          onSaved={() => { setFacultyModal(null); load(); }}
         />
       )}
       {pendingDelete && (

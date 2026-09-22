@@ -5,6 +5,7 @@ import AdminLayout from "./AdminLayout.jsx";
 import DashboardHome from "./pages/DashboardHome.jsx";
 import EventsAdmin from "./pages/EventsAdmin.jsx";
 import TeamAdmin from "./pages/TeamAdmin.jsx";
+import LeadershipAdmin from "./pages/LeadershipAdmin.jsx";
 import ApplicationsAdmin from "./pages/ApplicationsAdmin.jsx";
 import SettingsAdmin from "./pages/SettingsAdmin.jsx";
 import "./adminStyles.css";
@@ -12,7 +13,8 @@ import "./adminStyles.css";
 const PAGE_META = {
   dashboard: { title: "Dashboard", subtitle: "Overview of club activity" },
   events: { title: "Events", subtitle: "Manage workshops, contests and sessions" },
-  team: { title: "Team Members", subtitle: "Manage who appears on the About page" },
+    team: { title: "Team Members", subtitle: "Manage who appears on the About page" },
+  leadership: { title: "Leadership", subtitle: "Manage Honored Guests and the Faculty Advisory Council" },
   applications: { title: "Membership Applications", subtitle: "Run the aptitude and interview rounds and notify applicants" },
   settings: { title: "Site Settings", subtitle: "Club info, theme and homepage stats" }
 };
@@ -75,7 +77,8 @@ export default function AdminApp() {
     <AdminLayout page={page} setPage={setPage} title={meta.title} subtitle={meta.subtitle} onLogout={handleLogout}>
       {page === "dashboard" && <DashboardHome />}
       {page === "events" && <EventsAdmin />}
-      {page === "team" && <TeamAdmin />}
+            {page === "team" && <TeamAdmin />}
+      {page === "leadership" && <LeadershipAdmin />}
       {page === "applications" && <ApplicationsAdmin />}
       {page === "settings" && <SettingsAdmin />}
     </AdminLayout>

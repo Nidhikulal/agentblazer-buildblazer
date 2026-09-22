@@ -8,6 +8,7 @@ const sanitizeInput = require("./middleware/sanitize");
 const authRoutes = require("./routes/authRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const teamRoutes = require("./routes/teamRoutes");
+const leadershipRoutes = require("./routes/leadershipRoutes");
 const galleryRoutes = require("./routes/galleryRoutes");
 const memberRoutes = require("./routes/memberRoutes");
 const contactRoutes = require("./routes/contactRoutes");
@@ -63,6 +64,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/team", teamRoutes);
+app.use("/api/leadership", leadershipRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/contact", contactRoutes);

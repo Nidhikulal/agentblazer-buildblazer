@@ -9,7 +9,9 @@ const teamMemberSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     image: { type: String, default: "" },
     order: { type: Number, default: 0 },
-    active: { type: Boolean, default: true }
+    active: { type: Boolean, default: true },
+    // "core" = Student Core Team grid on the About page, "committee" = Core Working Committee row
+    section: { type: String, enum: ["core", "committee"], default: "core" }
   },
   { timestamps: true }
 );

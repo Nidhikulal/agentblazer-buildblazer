@@ -29,6 +29,7 @@ async function request(path, options = {}) {
 export const getEvents = () => request("/events");
 export const getTeam = () => request("/team");
 export const getSettings = () => request("/settings", { cache: "no-store" });
+export const getLeadership = () => request("/leadership", { cache: "no-store" });
 export const getThemes = () => request("/settings/themes");
 export const getStats = () => request("/stats");
 
