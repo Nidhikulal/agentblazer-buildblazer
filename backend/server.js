@@ -16,6 +16,7 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const statsRoutes = require("./routes/statsRoutes");
 
 const app = express();
+app.set("trust proxy", 1);
 
 const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
   .split(",")
@@ -102,6 +103,12 @@ async function start() {
 
 if (require.main === module) {
   start();
+} else {
+  // Running as a serverless function (e.g. on Vercel) — connect to the
+  // database, but don't call app.listen(); Vercel handles the HTTP server.
+  connectDB().catch((error) => {
+    console.error("MongoDB connection failed:", error.message);
+  });
 }
 
 module.exports = app;
