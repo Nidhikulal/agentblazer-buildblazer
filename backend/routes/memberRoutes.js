@@ -215,4 +215,23 @@ router.post("/:id/resend-email", protect, async (req, res) => {
   }
 });
 
+// Bulk delete applications (used by the "Select" / "Delete" toggle in the admin panel).
+router.post("/bulk-delete", protect, async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+    if (ids.length === 0) {
+      return res.status(400).json({ message: "No applications selected" });
+    }
+
+    const result = await MembershipApplication.deleteMany({ _id: { $in: ids } });
+
+    res.json({
+      deletedCount: result.deletedCount,
+      message: `${result.deletedCount} application${result.deletedCount === 1 ? "" : "s"} deleted`
+    });
+  } catch (error) {
+    res.status(400).json({ message: "Could not delete applications", error: error.message });
+  }
+});
+
 module.exports = router;

@@ -69,6 +69,8 @@ export const evaluateApplication = (id, round, result, note) =>
   request(`/members/${id}/evaluate`, { method: "PUT", body: JSON.stringify({ round, result, note }) });
 export const resendApplicationEmail = (id, round) =>
   request(`/members/${id}/resend-email`, { method: "POST", body: JSON.stringify({ round }) });
+export const deleteApplications = (ids) =>
+  request(`/members/bulk-delete`, { method: "POST", body: JSON.stringify({ ids }) });
 
 export const getAdminSettings = () => request("/settings");
 export const updateAdminSettings = (payload) => request("/settings", { method: "PUT", body: JSON.stringify(payload) });

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { getApplications, evaluateApplication, resendApplicationEmail } from "../adminApi.js";
+import { getApplications, evaluateApplication, resendApplicationEmail, deleteApplications } from "../adminApi.js";
 
 const ROUND_LABEL = { aptitude: "Aptitude Round", interview: "Interview Round" };
 
@@ -67,6 +67,10 @@ export default function ApplicationsAdmin() {
   const [tab, setTab] = useState("all");
   const [pending, setPending] = useState(null); // { app, round, result } awaiting confirmation
   const [note, setNote] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     getApplications()
@@ -85,6 +89,56 @@ export default function ApplicationsAdmin() {
   }, [applications]);
 
   const visible = tab === "all" ? applications : applications.filter((a) => a.status === tab);
+
+  const toggleSelectMode = () => {
+    if (selectMode) {
+      // Already in select mode: exit and clear whatever was picked.
+      setSelectMode(false);
+      setSelectedIds(new Set());
+    } else {
+      setSelectMode(true);
+    }
+  };
+
+  const toggleOne = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const allVisibleSelected = visible.length > 0 && visible.every((a) => selectedIds.has(a._id));
+  const toggleSelectAllVisible = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        visible.forEach((a) => next.delete(a._id));
+      } else {
+        visible.forEach((a) => next.add(a._id));
+      }
+      return next;
+    });
+  };
+
+  const runBulkDelete = async () => {
+    setDeleting(true);
+    setError("");
+    try {
+      const ids = Array.from(selectedIds);
+      const data = await deleteApplications(ids);
+      setApplications((apps) => apps.filter((a) => !selectedIds.has(a._id)));
+      setNotice({ text: data.message, warn: false });
+      setSelectedIds(new Set());
+      setSelectMode(false);
+      setConfirmBulkDelete(false);
+    } catch (err) {
+      setError(err.message || "Could not delete the selected applications");
+      setConfirmBulkDelete(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const openDecision = (app, round, result) => {
     setError("");
@@ -132,7 +186,25 @@ export default function ApplicationsAdmin() {
 
   return (
     <div className="adm-section">
-      <div className="row-head"><h2>Recruitment — Membership Applications ({applications.length})</h2></div>
+      <div className="row-head">
+        <h2>Recruitment — Membership Applications ({applications.length})</h2>
+        {applications.length > 0 && (
+          selectMode ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button className="adm-btn-sm" onClick={toggleSelectMode}>Cancel</button>
+              <button
+                className="adm-btn-sm danger"
+                disabled={selectedIds.size === 0}
+                onClick={() => setConfirmBulkDelete(true)}
+              >
+                Delete{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+              </button>
+            </div>
+          ) : (
+            <button className="adm-btn-sm" onClick={toggleSelectMode}>Select</button>
+          )
+        )}
+      </div>
 
       {notice && (
         <div className={`adm-notice ${notice.warn ? "warn" : ""}`}>
@@ -157,8 +229,18 @@ export default function ApplicationsAdmin() {
           {visible.length === 0 ? <div className="adm-empty">No applicants in this stage.</div> : (
             <div className="adm-table-wrap">
               <table className="adm-table">
-                <thead>
+                                <thead>
                   <tr>
+                    {selectMode && (
+                      <th style={{ width: 34 }}>
+                        <input
+                          type="checkbox"
+                          checked={allVisibleSelected}
+                          onChange={toggleSelectAllVisible}
+                          aria-label="Select all"
+                        />
+                      </th>
+                    )}
                     <th>Name</th><th>USN</th><th>College Email</th><th>Phone</th><th>Year / Branch</th><th>Message</th>
                     <th>1 · Aptitude</th><th>2 · Interview</th><th>Overall</th>
                   </tr>
@@ -166,6 +248,16 @@ export default function ApplicationsAdmin() {
                 <tbody>
                   {visible.map((a) => (
                     <tr key={a._id}>
+                      {selectMode && (
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(a._id)}
+                            onChange={() => toggleOne(a._id)}
+                            aria-label={`Select ${a.name}`}
+                          />
+                        </td>
+                      )}
                       <td>{a.name}</td>
                       <td className="muted">{a.usn || "—"}</td>
                       <td className="muted">{a.email}</td>
@@ -182,6 +274,26 @@ export default function ApplicationsAdmin() {
             </div>
           )}
         </>
+      )}
+
+      {confirmBulkDelete && (
+        <div className="ab-modal-overlay" onClick={() => deleting || setConfirmBulkDelete(false)}>
+          <div className="ab-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="ab-modal-close" onClick={() => setConfirmBulkDelete(false)} disabled={deleting} aria-label="Close">×</button>
+            <h2 style={{ fontFamily: "var(--disp)", fontSize: 20 }}>
+              Delete {selectedIds.size} application{selectedIds.size === 1 ? "" : "s"}?
+            </h2>
+            <p className="ab-modal-sub">
+              This permanently removes the selected application{selectedIds.size === 1 ? "" : "s"} and can't be undone. No email is sent.
+            </p>
+            <div className="adm-modal-actions">
+              <button className="adm-btn-sm" onClick={() => setConfirmBulkDelete(false)} disabled={deleting}>Cancel</button>
+              <button className="adm-btn-sm primary confirm-reject" onClick={runBulkDelete} disabled={deleting}>
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {pending && (
