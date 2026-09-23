@@ -1285,25 +1285,17 @@ const initialPage = () => {
   return NAV.some((n) => n.id === h) ? h : "home";
 };
 
-// A visitor's own theme choice. This is kept only for the current browser
-// tab/session (sessionStorage), NOT across visits. That means:
-//  - a fresh visit / new tab always starts from the admin's current
-//    "Default Theme" in Site Settings, so saving a new theme there
-//    reflects immediately for everyone
-//  - if a visitor clicks a theme swatch, that pick is respected only for
-//    the rest of that browsing session, instead of being forced onto
-//    every future visit
+// A visitor's own theme pick is stored as { theme, base }.
+// `base` is the admin Default Theme that was active when they picked.
+// The pick is only honoured while the admin default is still the same,
+// so when the admin saves a NEW default theme, it takes effect for everyone.
 const THEME_STORAGE_KEY = "ab-theme-user";
 
-const getVisitorTheme = () => {
+const getVisitorPick = () => {
   try {
-    // One-time cleanup: older builds stored this in localStorage, which
-    // made a visitor's pick stick forever and silently hid any future
-    // Default Theme change from the admin panel. Remove any leftover key.
-    localStorage.removeItem(THEME_STORAGE_KEY);
-
-    const s = sessionStorage.getItem(THEME_STORAGE_KEY);
-    return THEMES.includes(s) ? s : null;
+    localStorage.removeItem(THEME_STORAGE_KEY); // clean up very old builds
+    const p = JSON.parse(sessionStorage.getItem(THEME_STORAGE_KEY) || "null");
+    return p && THEMES.includes(p.theme) ? p : null;
   } catch (e) {
     return null;
   }
@@ -1311,17 +1303,32 @@ const getVisitorTheme = () => {
 
 export default function App() {
   const [page, setPage] = useState(initialPage);
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [userTheme, setUserTheme] = useState(getVisitorTheme);
+    const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [userPick, setUserPick] = useState(getVisitorPick);
   const [hover, setHover] = useState(null);
   const [introDone, setIntroDone] = useState(false);
 
-  // Visitor's own pick wins; otherwise use the admin's Default Theme
-  const theme = userTheme || settings.defaultTheme;
-    const setTheme = (t) => {
-    setUserTheme(t);
-    try { sessionStorage.setItem(THEME_STORAGE_KEY, t); } catch (e) {}
+  // Visitor's pick is used only if the admin default hasn't changed since;
+  // otherwise the admin's Default Theme applies.
+  const pickIsCurrent =
+    userPick && (!settingsLoaded || userPick.base === settings.defaultTheme);
+  const theme = pickIsCurrent ? userPick.theme : settings.defaultTheme;
+
+  const setTheme = (t) => {
+    const pick = { theme: t, base: settings.defaultTheme };
+    setUserPick(pick);
+    try { sessionStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(pick)); } catch (e) {}
   };
+
+  // Admin changed the default -> forget the visitor's old pick
+  useEffect(() => {
+    if (settingsLoaded && userPick && userPick.base !== settings.defaultTheme) {
+      setUserPick(null);
+      try { sessionStorage.removeItem(THEME_STORAGE_KEY); } catch (e) {}
+    }
+  }, [settingsLoaded, settings.defaultTheme, userPick]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
@@ -1334,7 +1341,10 @@ export default function App() {
   // and every 60s, so admin changes appear without the visitor reloading.
   const loadSettings = useCallback(() => {
     getSettings()
-      .then((data) => setSettings(mergeSettings(data)))
+      .then((data) => {
+        setSettings(mergeSettings(data));
+        setSettingsLoaded(true);
+      })
       .catch((err) => console.warn("Could not load site settings:", err.message));
   }, []);
 

@@ -37,6 +37,16 @@ router.get("/", async (req, res) => {
       settings = await SiteSettings.create({ key: "main" });
     }
 
+    // Never let the browser / Vercel edge cache this response,
+    // otherwise the user page keeps showing old settings.
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+      "Surrogate-Control": "no-store"
+    });
+    res.removeHeader("ETag");
+
     res.json(settings);
   } catch (error) {
     res.status(500).json({ message: "Could not load site settings", error: error.message });

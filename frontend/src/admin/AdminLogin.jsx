@@ -3,6 +3,7 @@ import { adminLogin, setSession } from "./adminApi.js";
 import AdminBackground from "./AdminBackground.jsx";
 import AdminCursorTrail from "./AdminCursorTrail.jsx";
 import logoImg from "../assets/logo.png";
+import eyeBackgroundVideo from "../assets/eye-background.mp4";
 
 export default function AdminLogin({ onSuccess }) {
   const [email, setEmail] = useState("");
@@ -27,6 +28,17 @@ export default function AdminLogin({ onSuccess }) {
 
       return (
     <div className="adm-login-shell">
+      <div className="glow-bg" />
+      <video
+        className="adm-login-video"
+        src={eyeBackgroundVideo}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        disablePictureInPicture
+      />
       <AdminBackground />
       <AdminCursorTrail />
       <div className="adm-login-card">

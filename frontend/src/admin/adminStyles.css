@@ -80,6 +80,11 @@ html.adm-custom-cursor,html.adm-custom-cursor *{cursor:none!important}
 .adm-empty{color:var(--muted);font-size:14px;padding:24px 0;text-align:center}
 .adm-loading{color:var(--muted);font-size:14px;padding:24px 0;text-align:center}
 .adm-login-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--text);font-family:var(--sans);padding:24px;position:relative;z-index:1}
+.adm-login-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;pointer-events:none;opacity:.5;mix-blend-mode:screen}
+[data-theme="frost"] .adm-login-video{opacity:.65}
+@media(max-width:900px){
+  .adm-login-video{bottom:auto;height:46vh;max-height:380px;min-height:220px}
+}
 .adm-login-card{width:100%;max-width:400px;background:var(--card-solid);border:1px solid var(--border);border-radius:22px;padding:38px 32px;box-shadow:0 24px 70px rgba(0,0,0,.4)}
 .adm-login-card .logo{width:64px;height:74px;display:grid;place-items:center;margin:0 auto 18px;filter:drop-shadow(0 0 16px rgba(139,92,246,.65))}
 .adm-login-card .logo img{width:100%;height:100%;object-fit:contain;display:block}@keyframes admGlow{

@@ -39,7 +39,10 @@ async function request(path, options = {}) {
   try { data = await res.json(); } catch (e) {}
 
   if (res.status === 401) clearSession();
-  if (!res.ok) throw new Error((data && data.message) || `Request failed (${res.status})`);
+  if (!res.ok) {
+    const base = (data && data.message) || `Request failed (${res.status})`;
+    throw new Error(data && data.error ? `${base}: ${data.error}` : base);
+  }
   return data;
 }
 
