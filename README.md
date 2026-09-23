@@ -10,6 +10,15 @@ The official website and admin panel for **AgentBlazer Club**, SJEC — built du
 **Admin Panel:**  
 [https://agentblazer-frontend.vercel.app/admin/login](https://agentblazer-frontend.vercel.app/admin/login)
 
+
+### Demo Credentials
+
+| Field | Value |
+|---|---|
+| **Email** | `agentblazer@gmail.com` |
+| **Password** | `ABClub@Team` |
+
+> These credentials are provided for project evaluation/demo purposes.
 ## About
 
 This project was built as **Phase 2** of AgentBlazer Club's Build Blazer event — where the winning Figma design from Phase 1 was implemented as a live, deployed, full-stack website.
