@@ -1,5 +1,6 @@
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/+$/, "");
-
+const API_BASE = (
+  import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000/api`
+).replace(/\/+$/, "");
 // The admin session lives in memory only (never localStorage/sessionStorage),
 // so every page load / refresh / new visit starts at the login page.
 let sessionToken = null;

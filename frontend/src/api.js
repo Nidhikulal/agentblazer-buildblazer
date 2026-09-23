@@ -2,8 +2,9 @@
 // Base URL comes from the VITE_API_URL env var (see .env), falling back
 // to the local backend dev server so `npm run dev` works out of the box.
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/+$/, "");
-
+const API_BASE = (
+  import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000/api`
+).replace(/\/+$/, "");
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },

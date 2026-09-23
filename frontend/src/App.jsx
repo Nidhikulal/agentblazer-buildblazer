@@ -91,8 +91,7 @@ function mapBackendEvent(e, idx) {
     tc: EVENT_TAG_COLORS[idx % EVENT_TAG_COLORS.length],
     title: e.title,
     desc: e.description,
-    fl: gal ? "Hover to inspect gallery" : e.venue || e.track || "Event Details",
-    fr: e.shortlistedStudents
+    fl: gal ? "Tap to view gallery" : e.venue || e.track || "Event Details",    fr: e.shortlistedStudents
       ? `${e.shortlistedStudents} Shortlisted Students`
       : e.galleryCount
       ? `${e.galleryCount} Photos`
@@ -368,7 +367,7 @@ function GalleryBody({ g }) {
   );
 }
 
-function Popover({ hover }) {
+function Popover({ hover, onClose }) {
   const ref = useRef(null);
   const last = useRef(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -405,23 +404,39 @@ function Popover({ hover }) {
     setPos({ x, y });
   }, [hover]);
 
+    const isGal = h && h.kind === "gal";
+
   return (
-    <div ref={ref} className={`pop ${h ? (h.kind === "person" ? "person" : "gal") : "person"} ${hover ? "show" : ""}`} style={{ left: pos.x, top: pos.y }}>
-      {h && h.kind === "person" && (
-        <>
-          <div className="ph">
-                      <img
-  alt={h.data.name}
-  src={h.data.image || resolvePhoto(h.data.photo) || avatar(h.data.ini, h.data.hue)}
-  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = avatar(h.data.ini, h.data.hue); }}
-/>
-            <span className="tag">LEADERSHIP</span><span className="sj">SJEC CSE</span>
-          </div>
-          <h6>{h.data.name}</h6><div className="sub">{h.data.pop}</div>
-        </>
+    <>
+      {isGal && (
+        <div
+          className={`pop-backdrop ${hover ? "show" : ""}`}
+          aria-hidden="true"
+          onClick={onClose}
+        />
       )}
-      {h && h.kind === "gal" && <GalleryBody g={h.data} />}
-    </div>
+      <div ref={ref} className={`pop ${h ? (h.kind === "person" ? "person" : "gal") : "person"} ${hover ? "show" : ""}`} style={{ left: pos.x, top: pos.y }}>
+        {isGal && (
+          <button type="button" className="pop-close" aria-label="Close gallery" onClick={onClose}>
+            &times;
+          </button>
+        )}
+        {h && h.kind === "person" && (
+          <>
+            <div className="ph">
+                        <img
+    alt={h.data.name}
+    src={h.data.image || resolvePhoto(h.data.photo) || avatar(h.data.ini, h.data.hue)}
+    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = avatar(h.data.ini, h.data.hue); }}
+  />
+              <span className="tag">LEADERSHIP</span><span className="sj">SJEC CSE</span>
+            </div>
+            <h6>{h.data.name}</h6><div className="sub">{h.data.pop}</div>
+          </>
+        )}
+        {h && h.kind === "gal" && <GalleryBody g={h.data} />}
+      </div>
+    </>
   );
 }
 /* ---------- mobile-only swipeable team carousel (press & hold to reveal photo) ---------- */
@@ -818,11 +833,15 @@ function Events({ hover, setHover, settings }) {
         </div>
         <div className="evgrid">
           {events.map((e) => (
-            <article
+                        <article
               key={e.id}
-              className={`ev ${hover && hover.id === e.id ? "hl" : ""}`}
+              className={`ev ${e.gal ? "has-gal" : ""} ${hover && hover.id === e.id ? "hl" : ""}`}
               onMouseEnter={(ev) => setHover({ id: e.id, kind: e.gal ? "gal" : "plain", data: e.gal, rect: ev.currentTarget.getBoundingClientRect() })}
               onMouseLeave={() => setHover(null)}
+              onClick={(ev) => {
+                if (!e.gal) return;
+                setHover({ id: e.id, kind: "gal", data: e.gal, rect: ev.currentTarget.getBoundingClientRect() });
+              }}
             >
               <div className="top"><span>{e.date}</span><span className={e.tc}>{e.tag}</span></div>
               <h3>{e.title}</h3>
@@ -1266,10 +1285,24 @@ const initialPage = () => {
   return NAV.some((n) => n.id === h) ? h : "home";
 };
 
-// A visitor's own theme choice (only saved when they click a theme button)
+// A visitor's own theme choice. This is kept only for the current browser
+// tab/session (sessionStorage), NOT across visits. That means:
+//  - a fresh visit / new tab always starts from the admin's current
+//    "Default Theme" in Site Settings, so saving a new theme there
+//    reflects immediately for everyone
+//  - if a visitor clicks a theme swatch, that pick is respected only for
+//    the rest of that browsing session, instead of being forced onto
+//    every future visit
+const THEME_STORAGE_KEY = "ab-theme-user";
+
 const getVisitorTheme = () => {
   try {
-    const s = localStorage.getItem("ab-theme-user");
+    // One-time cleanup: older builds stored this in localStorage, which
+    // made a visitor's pick stick forever and silently hid any future
+    // Default Theme change from the admin panel. Remove any leftover key.
+    localStorage.removeItem(THEME_STORAGE_KEY);
+
+    const s = sessionStorage.getItem(THEME_STORAGE_KEY);
     return THEMES.includes(s) ? s : null;
   } catch (e) {
     return null;
@@ -1285,11 +1318,10 @@ export default function App() {
 
   // Visitor's own pick wins; otherwise use the admin's Default Theme
   const theme = userTheme || settings.defaultTheme;
-  const setTheme = (t) => {
+    const setTheme = (t) => {
     setUserTheme(t);
-    try { localStorage.setItem("ab-theme-user", t); } catch (e) {}
+    try { sessionStorage.setItem(THEME_STORAGE_KEY, t); } catch (e) {}
   };
-
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
@@ -1347,7 +1379,7 @@ export default function App() {
           {page === "join" && <Join settings={settings} />}
         </main>
         <Footer go={go} settings={settings} />
-        <Popover hover={popHover} />
+        <Popover hover={popHover} onClose={() => setHover(null)} />
       </div>
       <CursorTrail />
     </>

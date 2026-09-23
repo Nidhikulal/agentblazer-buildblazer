@@ -269,6 +269,9 @@ nav.tabs .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
 .bars i.on{background:var(--accent)}
 .pop.gal .row{display:flex;justify-content:space-between;font-size:13px;font-weight:600}
 .pop.gal .row span:last-child{color:var(--gold);font-weight:500;font-size:14px}
+.pop-close{display:none}
+.pop-backdrop{display:none}
+.ev.has-gal{cursor:pointer}
 
 /* events */
 #events{padding:74px 0 90px}
@@ -347,8 +350,21 @@ footer .copy{margin-top:34px;padding-top:20px;border-top:1px solid var(--border)
 @media(max-width:700px){
   .guests,.team,.evgrid,.cgrid,.fgrid,.fgrid3{grid-template-columns:1fr}
   .stats{grid-template-columns:1fr}.stats>div+div{border-left:0;border-top:1px solid var(--border);margin-top:14px;padding-top:20px}
-  .brand-sub{display:none}.pop{display:none}
+  .brand-sub{display:none}
   nav.tabs{flex-wrap:wrap;justify-content:center}
+
+  /* events: tap a card with a gallery to open it as a centered, closable
+     modal (desktop keeps the hover-anchored side popover; this only
+     re-positions/re-sizes it once the layout goes single-column). the
+     "person" popover is never tap-triggered on mobile (faculty/team use
+     their own press-and-hold reveal), so this mainly affects .pop.gal. */
+  .pop{left:50%!important;top:50%!important;right:auto;bottom:auto;transform:translate(-50%,-50%) scale(.96);width:calc(100vw - 32px);max-width:420px;max-height:82vh;overflow-y:auto}
+  .pop.show{transform:translate(-50%,-50%) scale(1)}
+  .pop.gal{width:calc(100vw - 32px);pointer-events:auto;z-index:210}
+  .pop.gal img{height:auto;aspect-ratio:4/3;object-fit:cover}
+  .pop-close{display:flex;align-items:center;justify-content:center;position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:var(--card-solid);color:var(--text);font-size:20px;line-height:1;z-index:2}
+  .pop-backdrop{display:block;position:fixed;inset:0;z-index:205;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .2s}
+  .pop-backdrop.show{opacity:1;pointer-events:auto}
 
   /* faculty: press & hold to reveal photo (mobile only, desktop hover popover is untouched) */
   .faculty .f{position:relative;overflow:hidden}

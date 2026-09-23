@@ -38,14 +38,15 @@ export default function AdminLayout({ page, setPage, title, subtitle, onLogout, 
             </button>
           ))}
           <button className="logout-btn" onClick={logout}>
-            <span className="ic">🚪</span>
+            <span className="ic"></span>
             Logout
           </button>
         </nav>
       </aside>
       <main className="adm-main">
-        <div className="adm-mobile-bar">
+                <div className="adm-mobile-bar">
           <button onClick={() => setMobileOpen(true)} aria-label="Open menu">☰</button>
+          <img src={logoImg} alt="AgentBlazer" className="adm-mobile-logo" />
           <b style={{ fontFamily: "var(--disp)" }}>AgentBlazer Admin</b>
         </div>
         <div className="adm-topbar">
