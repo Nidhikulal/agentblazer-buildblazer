@@ -1,10 +1,14 @@
-# AgentBlazer Club — Official Website
+# AgentBlazer Club — Website
 
 The official website and admin panel for **AgentBlazer Club**, SJEC — built during the live build phase of the club's **Build Blazer** event.
 
-🔗 **Live site:** https://agentblazer-frontend.vercel.app/
-🔗 **Admin panel:** https://agentblazer-frontend.vercel.app/admin/login
----
+## 🔗 Links
+
+**Live Site:**  
+[https://agentblazer-frontend.vercel.app/](https://agentblazer-frontend.vercel.app/)
+
+**Admin Panel:**  
+[https://agentblazer-frontend.vercel.app/admin/login](https://agentblazer-frontend.vercel.app/admin/login)
 
 ## About
 
