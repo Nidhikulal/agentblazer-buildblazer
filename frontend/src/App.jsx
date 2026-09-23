@@ -424,19 +424,103 @@ function Popover({ hover }) {
     </div>
   );
 }
+/* ---------- mobile-only swipeable team carousel (press & hold to reveal photo) ---------- */
+function TeamCarousel({ team }) {
+  const [idx, setIdx] = useState(0);
+  const [pressed, setPressed] = useState(false);
+  const touch = useRef({ x: 0, y: 0, moved: false, timer: null });
 
+  if (!team || team.length === 0) return null;
+  const safeIdx = idx % team.length;
+  const m = team[safeIdx];
+
+  const go = (dir) => setIdx((i) => (i + dir + team.length) % team.length);
+  const clearTimer = () => { clearTimeout(touch.current.timer); touch.current.timer = null; };
+
+  const startPress = (x, y) => {
+    touch.current.x = x; touch.current.y = y; touch.current.moved = false;
+    clearTimer();
+    touch.current.timer = setTimeout(() => setPressed(true), 280);
+  };
+  const movePress = (x, y) => {
+    if (Math.abs(x - touch.current.x) > 10 || Math.abs(y - touch.current.y) > 10) {
+      touch.current.moved = true;
+      clearTimer();
+    }
+  };
+  const endPress = (x) => {
+    clearTimer();
+    const dx = x - touch.current.x;
+    setPressed(false);
+    if (!touch.current.moved) return;
+    if (dx < -40) go(1);
+    else if (dx > 40) go(-1);
+  };
+
+  const photoSrc = m.image || resolvePhoto(m.photo) || avatar(m.ini, m.hue);
+
+  return (
+    <div className="team-carousel">
+      <p className="tc-hint">Swipe left or right to meet the team &middot; press &amp; hold to see their photo</p>
+      <div
+        className={`tc-card ${pressed ? "revealed" : ""}`}
+        onTouchStart={(e) => startPress(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchMove={(e) => movePress(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchEnd={(e) => endPress(e.changedTouches[0].clientX)}
+        onMouseDown={(e) => startPress(e.clientX, e.clientY)}
+        onMouseUp={(e) => endPress(e.clientX)}
+        onMouseLeave={() => { clearTimer(); setPressed(false); }}
+      >
+        <span className="tc-index">#{String(safeIdx + 1).padStart(2, "0")}</span>
+        <div className="tc-photo">
+          <img
+            src={photoSrc}
+            alt={m.name}
+            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = avatar(m.ini, m.hue); }}
+          />
+        </div>
+        <div className="tc-info">
+          <span className="role" style={m.tagGold ? { color: "var(--gold)" } : undefined}>{m.tag}</span>
+          <h4>{m.name}</h4>
+          <span className={`badge ${m.bc}`}>{m.badge}</span>
+          <p>{m.desc}</p>
+        </div>
+        <span className="tc-tap">Hold to view photo</span>
+      </div>
+      <div className="tc-dots">
+        {team.map((_, i) => <i key={i} className={i === safeIdx ? "on" : ""} />)}
+      </div>
+      <div className="tc-nav">
+        <button type="button" onClick={() => go(-1)} aria-label="Previous member">‹</button>
+        <span className="tc-count">{safeIdx + 1} / {team.length}</span>
+        <button type="button" onClick={() => go(1)} aria-label="Next member">›</button>
+      </div>
+    </div>
+  );
+}
 /* ---------- header / footer ---------- */
 function Header({ page, go, theme, setTheme }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const handleNavClick = (id) => { go(id); setMenuOpen(false); };
   return (
     <header>
       <div className="wrap">
-        <a className="brand" href="#home" onClick={(e) => { e.preventDefault(); go("home"); }}>
+        <a className="brand" href="#home" onClick={(e) => { e.preventDefault(); go("home"); setMenuOpen(false); }}>
           <div className="logo-box"><Logo /></div>
           <div>
             <div className="brand-name">Agent<b>Blazer</b><i>collective</i></div>
             <div className="brand-sub">Department of Computer Science &amp; Engineering</div>
           </div>
         </a>
+        <button
+          type="button"
+          className={`nav-burger ${menuOpen ? "open" : ""}`}
+          aria-label="Toggle navigation menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <span></span><span></span><span></span>
+        </button>
         <nav className="tabs">
           {NAV.map((n) => (
             <button key={n.id} className={page === n.id ? "active" : ""} onClick={() => go(n.id)}>
@@ -452,6 +536,13 @@ function Header({ page, go, theme, setTheme }) {
           ))}
         </div>
       </div>
+      <nav className={`nav-mobile ${menuOpen ? "open" : ""}`}>
+        {NAV.map((n) => (
+          <button key={n.id} className={page === n.id ? "active" : ""} onClick={() => handleNavClick(n.id)}>
+            {n.id === "home" && <span className="dot" />}{n.label}
+          </button>
+        ))}
+      </nav>
     </header>
   );
 }
@@ -527,6 +618,25 @@ function Home({ go, settings }) {
 }
 
 function About({ hover, setHover, settings }) {
+  /* mobile-only: press & hold a faculty box to reveal their photo (desktop hover is untouched) */
+  const [facultyPressed, setFacultyPressed] = useState(null);
+  const facultyTouch = useRef({ x: 0, y: 0, moved: false, timer: null });
+  const clearFacultyTimer = () => { clearTimeout(facultyTouch.current.timer); facultyTouch.current.timer = null; };
+  const startFacultyPress = (id, x, y) => {
+    facultyTouch.current.x = x; facultyTouch.current.y = y; facultyTouch.current.moved = false;
+    clearFacultyTimer();
+    facultyTouch.current.timer = setTimeout(() => setFacultyPressed(id), 280);
+  };
+  const moveFacultyPress = (x, y) => {
+    if (Math.abs(x - facultyTouch.current.x) > 10 || Math.abs(y - facultyTouch.current.y) > 10) {
+      facultyTouch.current.moved = true;
+      clearFacultyTimer();
+    }
+  };
+  const endFacultyPress = () => {
+    clearFacultyTimer();
+    setFacultyPressed(null);
+  };
   const [team, setTeam] = useState(FALLBACK_TEAM);
   const [committee, setCommittee] = useState(COMMITTEE);
   const [guests, setGuests] = useState(GUESTS);
@@ -614,20 +724,33 @@ function About({ hover, setHover, settings }) {
           ))}
         </div>
 
-        <div className="faculty">
+                <div className="faculty">
           <h4>Faculty Advisory Council</h4>
           <div className="fgrid">
                         {faculty.map((f) => (
               <div
-                className={`f ${hover && hover.id === f.ini ? "hl" : ""}`}
+                className={`f ${hover && hover.id === f.ini ? "hl" : ""} ${facultyPressed === f.ini ? "revealed" : ""}`}
                 key={f.ini}
                 onMouseEnter={(e) => setHover({ id: f.ini, kind: "person", data: f, rect: e.currentTarget.getBoundingClientRect() })}
                 onMouseLeave={() => setHover(null)}
+                onTouchStart={(e) => startFacultyPress(f.ini, e.touches[0].clientX, e.touches[0].clientY)}
+                onTouchMove={(e) => moveFacultyPress(e.touches[0].clientX, e.touches[0].clientY)}
+                onTouchEnd={endFacultyPress}
+                onTouchCancel={endFacultyPress}
               >
                  <div className={`av ${f.photo ? "has-photo" : "c-cy"}`}>
                   {f.photo ? <img src={resolvePhoto(f.photo)} alt={f.name} /> : f.ini}
                 </div>
                 <div><h5>{f.name}</h5><small>{f.role}</small></div>
+                <span className="f-hint">Hold to view photo</span>
+                <div className="f-reveal">
+                  <img
+                    src={f.photo ? resolvePhoto(f.photo) : avatar(f.ini, f.hue)}
+                    alt={f.name}
+                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = avatar(f.ini, f.hue); }}
+                  />
+                  <span className="f-reveal-name">{f.name}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -649,7 +772,7 @@ function About({ hover, setHover, settings }) {
             </div>
           ))}
         </div>
-
+                  <TeamCarousel team={team} />
         <div className="cwc">
           <div className="hd"><b>Core Working Committee</b><span>Departmental Representatives</span></div>
           <div className="cgrid">
