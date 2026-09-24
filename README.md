@@ -2,6 +2,15 @@
 
 The official website and admin panel for **AgentBlazer Club**, SJEC — built during the live build phase of the club's **Build Blazer** event.
 
+## Team
+
+| Role | Name |
+|---|---|
+| Team Lead | Nidhi U Kulal |
+| Members | Rikisha Shetty |
+| Members | Sanika S |
+| Members | Nisha |
+
 ## 🔗 Links
 
 **Live Site:**  
